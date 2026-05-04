@@ -108,10 +108,6 @@ const App = () => {
       let result = null;
       if (data.kind === 'transfer') {
         result = await api.transferir(data.src.idCuenta, data.destAcct, data.amount);
-      } else if (data.kind === 'deposit') {
-        result = await api.depositar(data.src.numeroCuenta, data.amount, data.referencia, data.canal);
-      } else if (data.kind === 'withdraw') {
-        result = await api.retirar(data.src.idCuenta, data.amount);
       } else if (data.act === 'block') {
         await api.bloquearCuenta(data.password);
       } else if (data.act === 'unblock') {
@@ -151,7 +147,8 @@ const App = () => {
   else if (route === 'transfer')  content = <TransferirScreen accounts={activeAccounts} onBack={() => setRoute('home')} onConfirm={(d) => setPending(d)}/>;
   else if (route === 'deposit')   content = <SimpleTxScreen kind="deposit" accounts={activeAccounts} onBack={() => setRoute('home')}
     onGatewayDone={(d) => { setCompleted(d); setRoute('success'); setNavTab('home'); loadDashboard(); }}/>;
-  else if (route === 'withdraw')  content = <SimpleTxScreen kind="withdraw" accounts={activeAccounts} onBack={() => setRoute('home')} onConfirm={(d) => setPending(d)}/>;
+  else if (route === 'withdraw')  content = <SimpleTxScreen kind="withdraw" accounts={activeAccounts} defaultAccount={selectedAcct} onBack={() => setRoute('home')}
+    onGatewayDone={(d) => { setCompleted(d); setRoute('success'); setNavTab('home'); loadDashboard(); }}/>;
   else if (route === 'history')   content = <HistorialScreen accounts={accounts} onBack={() => { setRoute('home'); setNavTab('home'); }}/>;
   else if (route === 'profile')   content = <PerfilScreen username={username} onBack={() => { setRoute('home'); setNavTab('home'); }} onLogout={handleLogout}/>;
   else if (route === 'security')  content = <SeguridadScreen accounts={accounts} onBack={() => { setRoute('home'); setNavTab('home'); }} onAction={(d) => setPending(d)}/>;

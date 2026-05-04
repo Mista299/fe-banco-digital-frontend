@@ -58,8 +58,9 @@ const DetalleScreen = ({ account, onBack, onAction }) => {
       </div>
 
       <div className="fade-up" style={{ padding: '16px 20px 0', animationDelay: '0.08s' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <StatTile label="Saldo disponible" value={fmtCOP(account.saldo)} delta="COP"/>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <StatTile label="Saldo disponible" value={fmtCOP(account.saldoDisponible ?? account.saldo)} delta="COP"/>
+          <StatTile label="Saldo reservado" value={fmtCOP(account.saldoReservado ?? 0)} delta="COP"/>
           <StatTile label="Movimientos" value={String(txns.length)} delta="historial"/>
         </div>
       </div>

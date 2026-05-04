@@ -49,7 +49,7 @@ export const validarIdentidad = (documento, fechaExpedicion) =>
   apiFetch('/api/v1/registro/validar-identidad', { method: 'POST', body: JSON.stringify({ documento, fechaExpedicion }) }).then(unwrap);
 
 export const getDashboard = () =>
-  apiFetch('/api/v1/cuentas/dashboard').then(unwrap);
+  apiFetch('/api/v1/cuentas/dashboard').then(unwrap).then(d => d.cuentas ?? d);
 
 
 export const retirar = (idCuenta, monto) =>
@@ -90,3 +90,9 @@ export const cerrarCuenta = (idCuenta, contrasena) =>
 
 export const actualizarCliente = (email, telefono) =>
   apiFetch('/api/v1/clientes/me', { method: 'PUT', body: JSON.stringify({ email, telefono }) }).then(unwrap);
+
+export const generarTokenRetiro = (idCuenta, monto) =>
+  apiFetch('/api/v1/token-retiro/generar', { method: 'POST', body: JSON.stringify({ idCuenta, monto }) }).then(unwrap);
+
+export const consultarTokenRetiro = (codigo) =>
+  apiFetch(`/api/v1/token-retiro/${codigo}`).then(unwrap);

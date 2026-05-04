@@ -21,7 +21,7 @@ export const TxRow = ({ t, dense = false, onClick }) => {
     || monto > 0
     || (monto === 0 && (tipo === 'DEPOSITO' || (tipo === 'TRANSFERENCIA' && !t.numeroCuentaOrigen)));
 
-  const label   = t.label || (tipo === 'DEPOSITO' ? 'Depósito' : tipo === 'RETIRO' ? 'Retiro' : tipo === 'TRANSFERENCIA' ? 'Transferencia' : 'Movimiento');
+  const label   = t.label || (tipo === 'DEPOSITO' ? 'Depósito' : tipo === 'RETIRO' ? 'Retiro' : tipo === 'RETIRO_SIN_TARJETA' ? 'Retiro sin tarjeta' : tipo === 'TRANSFERENCIA' ? 'Transferencia' : 'Movimiento');
   const dateStr = t.date || (fechaRaw ? new Date(fechaRaw).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
   const amount  = Math.abs(monto);
   const pending = t.status === 'PENDIENTE' || t.estado === 'FALLIDA';

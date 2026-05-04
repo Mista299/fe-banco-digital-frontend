@@ -249,9 +249,19 @@ const DepositScreen = ({ accounts, onBack, onGatewayDone }) => {
 
 /* ─── Withdraw ──────────────────────────────────────────────── */
 
-const WithdrawScreen = ({ accounts, onBack, onConfirm }) => {
-  const [srcIdx, setSrcIdx] = useState(0);
-  const [amount, setAmount] = useState('');
+const WithdrawScreen = ({ accounts, onBack, onGatewayDone, defaultAccount }) => {
+  const defaultIdx = defaultAccount
+    ? Math.max(0, accounts.findIndex(a => a.idCuenta === defaultAccount.idCuenta))
+    : 0;
+  const [srcIdx, setSrcIdx] = useState(defaultIdx);
+  const [amount, setAmount]       = useState('');
+  const [phase, setPhase]         = useState('enter'); // 'enter' | 'waiting' | 'expired'
+  const [starting, setStarting]   = useState(false);
+  const [token, setToken]         = useState(null);
+  const [countdown, setCountdown] = useState(0);
+
+  const pollingRef   = useRef(null);
+  const countdownRef = useRef(null);
 
   const src        = accounts[srcIdx] || null;
   const num        = parseInt(amount || '0', 10);
@@ -264,6 +274,137 @@ const WithdrawScreen = ({ accounts, onBack, onConfirm }) => {
     else setAmount(a => (a + k).replace(/^0+/, '') || '0');
   };
 
+  const limpiarIntervalos = () => {
+    if (pollingRef.current)   clearInterval(pollingRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
+
+  const generarCodigo = async () => {
+    if (!valid || starting) return;
+    setStarting(true);
+    try {
+      const resp = await api.generarTokenRetiro(src.idCuenta, num);
+      setToken(resp);
+      setCountdown(Number(resp.segundosRestantes));
+      setPhase('waiting');
+
+      countdownRef.current = setInterval(() => {
+        setCountdown(c => {
+          if (c <= 1) { clearInterval(countdownRef.current); return 0; }
+          return c - 1;
+        });
+      }, 1000);
+
+      const capturedCodigo = resp.codigo;
+      const capturedMonto  = num;
+      pollingRef.current = setInterval(async () => {
+        try {
+          const estado = await api.consultarTokenRetiro(capturedCodigo);
+          if (estado.estado === 'USADO') {
+            limpiarIntervalos();
+            onGatewayDone({ kind: 'withdraw', amount: capturedMonto });
+          } else if (estado.estado === 'EXPIRADO' || estado.segundosRestantes <= 0) {
+            limpiarIntervalos();
+            setPhase('expired');
+          }
+        } catch {}
+      }, 2000);
+
+    } catch (e) {
+      // el toast lo maneja el padre si quiere; aquí solo dejamos entrar
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  const cancelar = () => {
+    limpiarIntervalos();
+    setPhase('enter');
+    setAmount('');
+    setCountdown(0);
+    setToken(null);
+  };
+
+  useEffect(() => () => limpiarIntervalos(), []);
+
+  const countdownColor = countdown > 300 ? 'var(--success)' : countdown > 60 ? '#F5A623' : 'var(--danger)';
+
+  /* ── Fase: expirado ── */
+  if (phase === 'expired') {
+    return (
+      <Screen padTop={54} padBottom={20}>
+        <SubHeader onBack={onBack} eyebrow="Salida de fondos" title="Retirar"/>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 32, background: 'rgba(255,107,122,0.1)', border: '1px solid rgba(255,107,122,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>⏱</div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 500 }}>Código expirado</div>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 8 }}>El código venció. El saldo fue devuelto a tu cuenta.</div>
+          </div>
+          <button className="nx-btn nx-btn-primary" style={{ width: '100%' }} onClick={cancelar}>
+            Generar nuevo código
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  /* ── Fase: esperando cajero ── */
+  if (phase === 'waiting') {
+    return (
+      <Screen padTop={54} padBottom={20}>
+        <SubHeader onBack={cancelar} eyebrow="Salida de fondos" title="Retirar"/>
+
+        <div className="fade-up" style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: '100%', padding: '20px', borderRadius: 20, background: 'linear-gradient(160deg, rgba(91,216,160,0.1), rgba(91,216,160,0.03))', border: '1px solid rgba(91,216,160,0.3)', textAlign: 'center' }}>
+            <div className="eyebrow" style={{ marginBottom: 10 }}>Código de retiro</div>
+            <div className="mono" style={{ fontSize: 48, letterSpacing: '0.22em', color: 'var(--success)', fontWeight: 400 }}>
+              {token?.codigo}
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 24 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div className="eyebrow" style={{ fontSize: 9 }}>Monto exacto</div>
+                <div className="mono" style={{ fontSize: 15, marginTop: 3 }}>{fmtCOP(num)}</div>
+              </div>
+              <div style={{ width: 1, background: 'var(--stroke-2)' }}/>
+              <div style={{ textAlign: 'center' }}>
+                <div className="eyebrow" style={{ fontSize: 9 }}>Cuenta</div>
+                <div className="mono" style={{ fontSize: 15, marginTop: 3 }}>{maskAcct(src?.numeroCuenta || '')}</div>
+              </div>
+              <div style={{ width: 1, background: 'var(--stroke-2)' }}/>
+              <div style={{ textAlign: 'center' }}>
+                <div className="eyebrow" style={{ fontSize: 9 }}>Expira en</div>
+                <div className="mono" style={{ fontSize: 15, marginTop: 3, color: countdownColor, fontWeight: 500 }}>
+                  {fmtCountdown(countdown)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ width: '100%', padding: '12px 14px', borderRadius: 14, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6 }}>
+              Presenta este código en un <strong style={{ color: 'var(--text-1)' }}>cajero Nexus</strong> o punto aliado. El efectivo se entrega al validar el código.
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)', animation: 'nx-pulse 1.4s ease-in-out infinite' }}/>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--text-3)', textTransform: 'uppercase' }}>
+              Esperando confirmación del cajero
+            </span>
+          </div>
+        </div>
+
+        <div style={{ flex: 1 }}/>
+        <div style={{ padding: '20px 20px 0' }}>
+          <button className="nx-btn nx-btn-ghost" style={{ width: '100%' }} onClick={cancelar}>
+            Cancelar
+          </button>
+        </div>
+      </Screen>
+    );
+  }
+
+  /* ── Fase: ingresar monto ── */
   return (
     <Screen padTop={54} padBottom={20}>
       <SubHeader onBack={onBack} eyebrow="Salida de fondos" title="Retirar"/>
@@ -321,9 +462,9 @@ const WithdrawScreen = ({ accounts, onBack, onConfirm }) => {
       </div>
 
       <div style={{ padding: '16px 20px 0' }}>
-        <button className="nx-btn nx-btn-primary" style={{ width: '100%', opacity: valid ? 1 : 0.5, pointerEvents: valid ? 'auto' : 'none' }}
-          onClick={() => onConfirm({ kind: 'withdraw', src, amount: num })}>
-          Confirmar retiro
+        <button className="nx-btn nx-btn-primary" style={{ width: '100%', opacity: valid ? 1 : 0.5, pointerEvents: valid && !starting ? 'auto' : 'none' }}
+          onClick={generarCodigo} disabled={starting}>
+          {starting ? <Spinner /> : 'Generar código de retiro'}
         </button>
         <div style={{ textAlign: 'center', marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.16em', color: 'var(--text-4)', textTransform: 'uppercase' }}>
           Retiro sin tarjeta · Cajeros Nexus
@@ -335,9 +476,9 @@ const WithdrawScreen = ({ accounts, onBack, onConfirm }) => {
 
 /* ─── Wrapper ───────────────────────────────────────────────── */
 
-const SimpleTxScreen = ({ kind, accounts = [], onBack, onConfirm, onGatewayDone }) => {
+const SimpleTxScreen = ({ kind, accounts = [], onBack, onGatewayDone, defaultAccount }) => {
   if (kind === 'deposit') return <DepositScreen accounts={accounts} onBack={onBack} onGatewayDone={onGatewayDone}/>;
-  return <WithdrawScreen accounts={accounts} onBack={onBack} onConfirm={onConfirm}/>;
+  return <WithdrawScreen accounts={accounts} onBack={onBack} onGatewayDone={onGatewayDone} defaultAccount={defaultAccount}/>;
 };
 
 export default SimpleTxScreen;
