@@ -172,24 +172,8 @@ const App = () => {
       <Toast toast={toast}/>
       {pending && <ConfirmModal data={pending} onCancel={() => setPending(null)} onConfirm={handleConfirm}/>}
 
-      {/* Dynamic island */}
-      <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 150, pointerEvents: 'none' }}/>
 
-      {/* Status bar */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 155, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '17px 32px 0', height: 54, pointerEvents: 'none' }}>
-        <span style={{ fontSize: 16, fontWeight: 600, color: '#fff', fontFamily: 'var(--font-sans)' }}>
-          {new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width="17" height="11" viewBox="0 0 17 11" fill="#fff"><rect x="0" y="7" width="3" height="4" rx="0.6"/><rect x="4.5" y="5" width="3" height="6" rx="0.6"/><rect x="9" y="2.5" width="3" height="8.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="11" rx="0.6"/></svg>
-          <svg width="24" height="11" viewBox="0 0 24 11" fill="none"><rect x="0.5" y="0.5" width="20" height="10" rx="2.5" stroke="#fff" strokeOpacity="0.5"/><rect x="2" y="2" width="17" height="7" rx="1.5" fill="#fff"/></svg>
-        </div>
-      </div>
 
-      {/* Home indicator */}
-      <div style={{ position: 'absolute', bottom: 8, left: 0, right: 0, zIndex: 160, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
-        <div style={{ width: 139, height: 5, borderRadius: 100, background: 'rgba(255,255,255,0.7)' }}/>
-      </div>
     </div>
   );
 };
