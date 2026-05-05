@@ -83,7 +83,13 @@ export const validarIdentidad = (documento, fechaExpedicion) =>
 export const getDashboard = () =>
   apiFetch('/api/v1/cuentas/dashboard')
     .then(unwrap)
-    .then(d => d.cuentas ?? d);
+    .then(d => {
+      const cuentas = d.cuentas ?? d;
+      if (!Array.isArray(cuentas)) return cuentas;
+      const clientName = d.mensajeBienvenida?.match(/Bienvenido,\s*([^.]+)\./)?.[1]?.trim() ?? null;
+      if (!clientName) return cuentas;
+      return cuentas.map(c => ({ ...c, nombreCliente: c.nombreCliente ?? clientName }));
+    });
 
 export const retirar = (idCuenta, monto) =>
   apiFetch('/api/v1/transacciones/retirar', {

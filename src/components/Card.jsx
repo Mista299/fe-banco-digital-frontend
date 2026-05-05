@@ -15,15 +15,25 @@ const finishes = {
   },
 };
 
-const NexusCard = ({ account, variant = 'obsidian', size = 'md', tilt = false, onClick }) => {
+const deriveCvc = (num) => {
+  let h = 0;
+  for (let i = 0; i < num.length; i++) h = (Math.imul(31, h) + num.charCodeAt(i)) | 0;
+  return String(Math.abs(h) % 1000).padStart(3, '0');
+};
+
+const NexusCard = ({ account, variant = 'obsidian', size = 'md', tilt = false, onClick, hidden = false }) => {
   const W = size === 'lg' ? 340 : size === 'sm' ? 260 : 320;
   const H = size === 'lg' ? 215 : size === 'sm' ? 164 : 202;
   const f = finishes[variant] || finishes.obsidian;
   const acctNum = account?.numeroCuenta || account?.number || '0000000000';
   const balance = account?.saldo ?? account?.balance ?? 0;
-  const label = account?.label || account?.tipo || 'Cuenta';
   const tipo = account?.tipo || account?.type || 'AHORROS';
   const status = account?.estado || account?.status || 'ACTIVA';
+  const cvc = account?.cvc ?? deriveCvc(acctNum);
+  const rawName = account?.nombreCliente || account?.nombre || '';
+  const cardName = rawName
+    ? rawName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    : 'Nexus Bank';
 
   return (
     <div onClick={onClick} className={tilt ? 'press' : ''} style={{
@@ -54,7 +64,7 @@ const NexusCard = ({ account, variant = 'obsidian', size = 'md', tilt = false, o
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.22em', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
               Nexus · {tipo}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 4, fontWeight: 500 }}>{label}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(255,255,255,0.9)', marginTop: 5, letterSpacing: '0.1em', fontWeight: 500 }}>{cardName}</div>
           </div>
           <svg width="22" height="14" viewBox="0 0 22 14" fill="none">
             <path d="M2 5C2 3 4 1 7 1H15C18 1 20 3 20 5V9C20 11 18 13 15 13H7C4 13 2 11 2 9V5Z" stroke={f.accent} strokeWidth="0.8" opacity="0.7"/>
@@ -64,25 +74,40 @@ const NexusCard = ({ account, variant = 'obsidian', size = 'md', tilt = false, o
         </div>
 
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.92)', fontWeight: 400, whiteSpace: 'nowrap' }}>
-          ••••&nbsp;&nbsp;••••&nbsp;&nbsp;••••&nbsp;&nbsp;<span style={{ color: '#fff' }}>{String(acctNum).slice(-4)}</span>
+          {hidden
+            ? '••••  ••••  ••••  ••••'
+            : String(acctNum).match(/.{1,4}/g)?.join('  ') || acctNum
+          }
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.22em', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>Saldo disponible</div>
             <div className="tnum" style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 500, color: '#fff', marginTop: 3, letterSpacing: '-0.02em' }}>
-              {account?.saldoDisponible === false ? 'No disponible' : fmtCOP(balance)}
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginLeft: 4, fontWeight: 400 }}>COP</span>
+              {hidden ? <span style={{ letterSpacing: '0.12em' }}>••••••</span> : (account?.saldoDisponible === false ? 'No disponible' : fmtCOP(balance))}
+              {!hidden && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginLeft: 4, fontWeight: 400 }}>COP</span>}
             </div>
           </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
-            color: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : 'rgba(255,255,255,0.5)',
-            textTransform: 'uppercase',
-          }}>
-            <span style={{ width: 5, height: 5, borderRadius: 99, background: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : '#888', boxShadow: status === 'ACTIVA' ? '0 0 6px #5BD8A0' : 'none' }}/>
-            {status}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            {!hidden && (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.2em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>CVC</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, letterSpacing: '0.2em', color: '#fff', fontWeight: 600, marginTop: 1 }}>
+                  {cvc ?? '···'}
+                </div>
+              </div>
+            )}
+            {hidden && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+                color: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+              }}>
+                <span style={{ width: 5, height: 5, borderRadius: 99, background: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : '#888', boxShadow: status === 'ACTIVA' ? '0 0 6px #5BD8A0' : 'none' }}/>
+                {status}
+              </div>
+            )}
           </div>
         </div>
       </div>

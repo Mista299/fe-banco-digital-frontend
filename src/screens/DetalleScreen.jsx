@@ -15,6 +15,7 @@ const StatTile = ({ label, value, delta, up }) => (
 const DetalleScreen = ({ account, onBack, onAction }) => {
   const [txns, setTxns] = useState([]);
   const [copied, setCopied] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     if (account?.idCuenta) {
@@ -39,8 +40,15 @@ const DetalleScreen = ({ account, onBack, onAction }) => {
     <Screen padTop={54} padBottom={40}>
       <SubHeader onBack={onBack} eyebrow={tipo} title={label}/>
 
-      <div className="fade-up" style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 24px' }}>
-        <NexusCard account={account} variant={variant} size="lg"/>
+      <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0 16px', gap: 12 }}>
+        <NexusCard account={account} variant={variant} size="lg" hidden={hidden}/>
+        <button
+          onClick={() => setHidden(h => !h)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', borderRadius: 20, padding: '6px 14px', color: 'var(--text-2)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', cursor: 'pointer', textTransform: 'uppercase' }}
+        >
+          <Icon name={hidden ? 'eye' : 'eye-off'} size={13}/>
+          {hidden ? 'Mostrar datos' : 'Ocultar datos'}
+        </button>
       </div>
 
       <div className="fade-up" style={{ padding: '0 20px', animationDelay: '0.04s' }}>

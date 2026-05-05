@@ -127,6 +127,7 @@ export const DesktopDashboard = ({ accounts = [], txns = [], onAccount, onAction
 };
 
 export const DesktopDetalle = ({ account, txns = [], onBack, onAction }) => {
+  const [hidden, setHidden] = useState(false);
   if (!account) return null;
   const st = account.status || account.estado;
   const tagClass = st === 'ACTIVA' ? 'active' : st === 'BLOQUEADA' ? 'blocked' : 'inactive';
@@ -143,7 +144,15 @@ export const DesktopDetalle = ({ account, txns = [], onBack, onAction }) => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 20 }}>
         <div className="nx-card" style={{ padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-          <NexusCard account={account} variant={account.finish} size="lg"/>
+          <NexusCard account={account} variant={account.finish} size="lg" hidden={hidden}/>
+          <button
+            onClick={() => setHidden(h => !h)}
+            className="press"
+            style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--bg-3)', border: '1px solid var(--stroke-1)', borderRadius: 20, padding: '7px 16px', color: 'var(--text-2)', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase', width: '100%', justifyContent: 'center' }}
+          >
+            <Icon name={hidden ? 'eye' : 'eye-off'} size={13}/>
+            {hidden ? 'Mostrar datos' : 'Ocultar datos'}
+          </button>
           <div style={{ width: '100%', padding: '14px 16px', background: 'var(--bg-3)', borderRadius: 12, border: '1px solid var(--stroke-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div className="eyebrow" style={{ fontSize: 9 }}>Número de cuenta</div>
