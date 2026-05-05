@@ -58,6 +58,12 @@ export const retirar = (idCuenta, monto) =>
 export const transferir = (idCuentaOrigen, numeroCuentaDestino, monto) =>
   apiFetch('/api/v1/transacciones/transferir', { method: 'POST', body: JSON.stringify({ idCuentaOrigen, numeroCuentaDestino, monto }) }).then(unwrap);
 
+export const transferirMismoBanco = (idCuentaOrigen, numeroCuentaOrigen, numeroCuentaDestino, monto) =>
+  apiFetch('/api/v1/transacciones/transferencia', {
+    method: 'POST',
+    body: JSON.stringify({ idCuentaOrigen, numeroCuentaOrigen, numeroCuentaDestino, monto }),
+  }).then(unwrap);
+
 export const getMovimientos = (idCuenta) =>
   apiFetch(`/api/v1/transacciones/cuenta/${idCuenta}`).then(unwrap);
 

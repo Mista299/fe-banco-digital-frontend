@@ -3,7 +3,7 @@ import { Icon, fmtCOP } from '../components/primitives';
 const SuccessScreen = ({ data, onDone }) => {
   const txt = (() => {
     if (!data) return { t: 'Operación exitosa', s: '' };
-    if (data.kind === 'transfer') return { t: 'Transferencia realizada', s: `${fmtCOP(data.amount)} enviados a cuenta ${data.destAcct}` };
+    if (data.kind === 'transfer') return { t: 'Transferencia realizada', s: `${fmtCOP(data.amount)} enviados a cuenta ${data.destAcct} · Banco Nexus` };
     if (data.kind === 'deposit')  return { t: 'Depósito confirmado', s: `${fmtCOP(data.amount)} acreditados` };
     if (data.kind === 'withdraw') return { t: 'Retiro autorizado', s: `${fmtCOP(data.amount)} procesados` };
     if (data.act === 'block')     return { t: 'Cuenta bloqueada', s: data.acct?.label || '' };

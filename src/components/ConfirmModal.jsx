@@ -8,7 +8,7 @@ const ConfirmModal = ({ data, onCancel, onConfirm }) => {
   if (!data) return null;
 
   const summary = (() => {
-    if (data.kind === 'transfer') return { title: 'Confirmar transferencia', detail: `${fmtCOP(data.amount)} a cuenta ${data.destAcct}` };
+    if (data.kind === 'transfer') return { title: 'Confirmar transferencia', detail: `${fmtCOP(data.amount)} → cuenta ${data.destAcct}`, sub: 'Banco Nexus · Transferencia interna' };
     if (data.kind === 'withdraw') return { title: 'Confirmar retiro',         detail: `${fmtCOP(data.amount)} de ${data.src?.label || 'su cuenta'}` };
     if (data.act === 'block')     return { title: 'Bloquear cuenta',          detail: data.acct?.label, needsPwd: true };
     if (data.act === 'unblock')   return { title: 'Desbloquear cuenta',       detail: data.acct?.label, needsPwd: true };

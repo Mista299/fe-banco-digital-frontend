@@ -107,7 +107,12 @@ const App = () => {
     try {
       let result = null;
       if (data.kind === 'transfer') {
-        result = await api.transferir(data.src.idCuenta, data.destAcct, data.amount);
+        result = await api.transferirMismoBanco(
+          data.src.idCuenta,
+          data.src.numeroCuenta,
+          data.destAcct,
+          data.amount
+        );
       } else if (data.act === 'block') {
         await api.bloquearCuenta(data.password);
       } else if (data.act === 'unblock') {

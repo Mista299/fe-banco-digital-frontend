@@ -32,3 +32,17 @@ body {
   text-align: unset;
   flex-direction: unset;
 }
+
+body.desktop-mode {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  background: #07080B;
+}
+
+body.desktop-mode #root {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
