@@ -160,6 +160,15 @@ export const actualizarCliente = (email, telefono) =>
     body: JSON.stringify({ email, telefono }),
   }).then(unwrap);
 
+export const iniciarTransferenciaInterbancaria = (data) =>
+  apiFetch('/api/v1/transferencias/interbancarias', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }).then(unwrap);
+
+export const consultarTransferenciaACH = (idTransaccion) =>
+  apiFetch(`/api/v1/transferencias/interbancarias/${idTransaccion}`).then(unwrap);
+
 export const generarTokenRetiro = (idCuenta, monto) =>
   apiFetch('/api/v1/token-retiro/generar', {
     method: 'POST',

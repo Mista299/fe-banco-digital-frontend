@@ -6,6 +6,7 @@ import {
   DesktopHistory, DesktopProfile, DesktopSecurity, DesktopSuccess,
 } from './DesktopScreens';
 import { Icon } from '../components/primitives';
+import NotificacionPanel from '../components/NotificacionPanel';
 
 const FINISHES = ['obsidian', 'midnight', 'graphite'];
 
@@ -86,6 +87,10 @@ const DesktopApp = () => {
   const [username, setUsername] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [notifs, setNotifs] = useState([]);
+  const [notifPanel, setNotifPanel] = useState(false);
+
+  const notifCount = notifs.filter(n => !n.leida).length;
 
   const showToast = useCallback((msg, kind = 'success') => {
     setToast({ msg, kind });
@@ -112,6 +117,33 @@ const DesktopApp = () => {
     if (route === 'app') loadDashboard();
   }, [route, loadDashboard]);
 
+  useEffect(() => {
+    const hasPending = notifs.some(n => n.estado === 'PENDIENTE_PROCESAMIENTO');
+    if (!hasPending) return;
+
+    const id = setInterval(async () => {
+      const pendientes = notifs.filter(n => n.estado === 'PENDIENTE_PROCESAMIENTO');
+      for (const n of pendientes) {
+        try {
+          const d = await api.consultarTransferenciaACH(n.idTransaccion);
+          if (d.estado !== 'PENDIENTE_PROCESAMIENTO') {
+            setNotifs(prev => prev.map(x =>
+              x.idTransaccion === n.idTransaccion ? { ...x, estado: d.estado, leida: false } : x
+            ));
+            if (d.estado === 'EXITOSA') {
+              showToast(`ACH confirmada · ${n.banco}`, 'success');
+            } else if (d.estado === 'REVERSADA') {
+              showToast(`ACH rechazada · Saldo devuelto · ${n.banco}`, 'error');
+            }
+            loadDashboard();
+          }
+        } catch { /* ignorar errores de red en el polling */ }
+      }
+    }, 8000);
+
+    return () => clearInterval(id);
+  }, [notifs, showToast, loadDashboard]);
+
   const handleLogin = async (user, pwd) => {
     setLoginLoading(true);
     try {
@@ -132,6 +164,7 @@ const DesktopApp = () => {
     setTxns([]);
     setUsername('');
     setNav('home');
+    setNotifs([]);
   };
 
   const handleNav = (id) => {
@@ -156,13 +189,37 @@ const DesktopApp = () => {
     else showToast('Función disponible próximamente', 'info');
   };
 
-  const handleTransferConfirm = async ({ kind, amount, destAcct, srcId }) => {
+  const handleTransferConfirm = async (data) => {
+    const { kind, amount, srcId } = data;
     const src = accounts.find(a => (a.idCuenta || a.id) === srcId);
     if (!src) return;
     try {
-      await api.transferirMismoBanco(src.idCuenta, src.numeroCuenta, destAcct, amount);
-      await loadDashboard();
-      setSuccessData({ kind, amount, destAcct });
+      if (kind === 'transfer') {
+        await api.transferirMismoBanco(src.idCuenta, src.numeroCuenta, data.destAcct, amount);
+        await loadDashboard();
+        setSuccessData({ kind, amount, destAcct: data.destAcct });
+      } else if (kind === 'ach') {
+        const result = await api.iniciarTransferenciaInterbancaria({
+          idCuentaOrigen:          src.idCuenta,
+          bancoDestino:            data.destBanco,
+          tipoCuentaDestino:       data.destTipoCuenta,
+          numeroCuentaDestino:     data.destNumCuenta,
+          nombreReceptor:          data.nombreReceptor,
+          tipoDocumentoReceptor:   data.tipoDocReceptor,
+          numeroDocumentoReceptor: data.numDocReceptor,
+          monto:                   amount,
+        });
+        setNotifs(ns => [{
+          idTransaccion: result.idTransaccion,
+          monto:         amount,
+          banco:         data.destBanco,
+          destinatario:  data.nombreReceptor,
+          estado:        result.estado,
+          leida:         false,
+        }, ...ns]);
+        await loadDashboard();
+        setSuccessData({ kind, amount, nombreReceptor: data.nombreReceptor, destBanco: data.destBanco, result });
+      }
       setNav('success');
     } catch (e) {
       showToast(e.message || 'Error en la transferencia', 'error');
@@ -182,7 +239,7 @@ const DesktopApp = () => {
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-1)' }}>
-      <Topbar user={username} onLogout={handleLogout}/>
+      <Topbar user={username} onLogout={handleLogout} notifCount={notifCount} onBell={() => setNotifPanel(true)}/>
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Sidebar active={nav} onNav={handleNav} collapsed={collapsed}/>
         <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-1)' }}>
@@ -213,6 +270,15 @@ const DesktopApp = () => {
         </div>
       </div>
       <Toast toast={toast}/>
+      {notifPanel && (
+        <NotificacionPanel
+          desktop
+          notifs={notifs}
+          onClose={() => setNotifPanel(false)}
+          onLeerTodas={() => setNotifs(ns => ns.map(n => ({ ...n, leida: true })))}
+          onLeer={id => setNotifs(ns => ns.map(n => n.idTransaccion === id ? { ...n, leida: true } : n))}
+        />
+      )}
     </div>
   );
 };

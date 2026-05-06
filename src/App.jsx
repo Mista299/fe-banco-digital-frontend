@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BottomNav, Toast } from './components/primitives';
 import ConfirmModal from './components/ConfirmModal';
+import NotificacionPanel from './components/NotificacionPanel';
 
 import SplashScreen     from './screens/SplashScreen';
 import LoginScreen      from './screens/LoginScreen';
@@ -48,6 +49,10 @@ const App = () => {
   const [errKind, setErrKind]       = useState('expired');
   const [errMsg, setErrMsg]         = useState('');
   const [dashVariant]               = useState('wallet');
+  const [notifs, setNotifs]         = useState([]);
+  const [notifPanel, setNotifPanel] = useState(false);
+
+  const notifCount = notifs.filter(n => !n.leida).length;
 
   const showToast = useCallback((msg, kind = 'success') => {
     setToast({ msg, kind });
@@ -68,6 +73,34 @@ const App = () => {
     }
   }, []);
 
+  // Polling de notificaciones ACH pendientes
+  useEffect(() => {
+    const hasPending = notifs.some(n => n.estado === 'PENDIENTE_PROCESAMIENTO');
+    if (!hasPending) return;
+
+    const id = setInterval(async () => {
+      const pendientes = notifs.filter(n => n.estado === 'PENDIENTE_PROCESAMIENTO');
+      for (const n of pendientes) {
+        try {
+          const d = await api.consultarTransferenciaACH(n.idTransaccion);
+          if (d.estado !== 'PENDIENTE_PROCESAMIENTO') {
+            setNotifs(prev => prev.map(x =>
+              x.idTransaccion === n.idTransaccion ? { ...x, estado: d.estado, leida: false } : x
+            ));
+            if (d.estado === 'EXITOSA') {
+              showToast(`ACH confirmada · ${n.banco}`, 'success');
+            } else if (d.estado === 'REVERSADA') {
+              showToast(`ACH rechazada · Saldo devuelto · ${n.banco}`, 'error');
+            }
+            loadDashboard();
+          }
+        } catch { /* ignorar errores de red en el polling */ }
+      }
+    }, 8000);
+
+    return () => clearInterval(id);
+  }, [notifs, showToast, loadDashboard]);
+
   const handleLogin = async (user) => {
     setUsername(user);
     setRoute('loading');
@@ -86,7 +119,7 @@ const App = () => {
 
   const handleLogout = async () => {
     await api.logout().catch(() => {});
-    setUsername(''); setAccounts([]); setRecentTxns([]);
+    setUsername(''); setAccounts([]); setRecentTxns([]); setNotifs([]);
     setRoute('login');
   };
 
@@ -113,6 +146,25 @@ const App = () => {
           data.destAcct,
           data.amount
         );
+      } else if (data.kind === 'ach') {
+        result = await api.iniciarTransferenciaInterbancaria({
+          idCuentaOrigen:          data.src.idCuenta,
+          bancoDestino:            data.destBanco,
+          tipoCuentaDestino:       data.destTipoCuenta,
+          numeroCuentaDestino:     data.destNumCuenta,
+          nombreReceptor:          data.nombreReceptor,
+          tipoDocumentoReceptor:   data.tipoDocReceptor,
+          numeroDocumentoReceptor: data.numDocReceptor,
+          monto:                   data.amount,
+        });
+        setNotifs(ns => [{
+          idTransaccion: result.idTransaccion,
+          monto:         data.amount,
+          banco:         data.destBanco,
+          destinatario:  data.nombreReceptor,
+          estado:        result.estado,
+          leida:         false,
+        }, ...ns]);
       } else if (data.act === 'block') {
         await api.bloquearCuenta(data.password);
       } else if (data.act === 'unblock') {
@@ -146,7 +198,9 @@ const App = () => {
     const Dash = dashVariant === 'terminal' ? DashboardB : DashboardA;
     content = <Dash accounts={accounts} recentTxns={recentTxns} username={username}
       onAccount={(a) => { setSelectedAcct(a); setRoute('detalle'); }}
-      onAction={goAction}/>;
+      onAction={goAction}
+      notifCount={notifCount}
+      onBell={() => setNotifPanel(true)}/>;
   }
   else if (route === 'detalle')   content = <DetalleScreen account={selectedAcct} onBack={() => setRoute('home')} onAction={goAction}/>;
   else if (route === 'transfer')  content = <TransferirScreen accounts={activeAccounts} onBack={() => setRoute('home')} onConfirm={(d) => setPending(d)}/>;
@@ -171,9 +225,14 @@ const App = () => {
       {showBottomNav && <BottomNav active={navTab} onChange={goTab}/>}
       <Toast toast={toast}/>
       {pending && <ConfirmModal data={pending} onCancel={() => setPending(null)} onConfirm={handleConfirm}/>}
-
-
-
+      {notifPanel && (
+        <NotificacionPanel
+          notifs={notifs}
+          onClose={() => setNotifPanel(false)}
+          onLeerTodas={() => setNotifs(ns => ns.map(n => ({ ...n, leida: true })))}
+          onLeer={id => setNotifs(ns => ns.map(n => n.idTransaccion === id ? { ...n, leida: true } : n))}
+        />
+      )}
     </div>
   );
 };

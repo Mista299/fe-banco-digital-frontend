@@ -1,9 +1,12 @@
 import { Icon, fmtCOP } from '../components/primitives';
 
 const SuccessScreen = ({ data, onDone }) => {
+  const isAch = data?.kind === 'ach';
+
   const txt = (() => {
     if (!data) return { t: 'Operación exitosa', s: '' };
     if (data.kind === 'transfer') return { t: 'Transferencia realizada', s: `${fmtCOP(data.amount)} enviados a cuenta ${data.destAcct} · Banco Nexus` };
+    if (data.kind === 'ach')      return { t: 'Orden ACH enviada', s: `${fmtCOP(data.amount)} a ${data.nombreReceptor} · ${data.destBanco}` };
     if (data.kind === 'deposit')  return { t: 'Depósito confirmado', s: `${fmtCOP(data.amount)} acreditados` };
     if (data.kind === 'withdraw') return { t: 'Retiro autorizado', s: `${fmtCOP(data.amount)} procesados` };
     if (data.act === 'block')     return { t: 'Cuenta bloqueada', s: data.acct?.label || '' };
@@ -17,21 +20,33 @@ const SuccessScreen = ({ data, onDone }) => {
   const fecha = apiResult?.fecha ? new Date(apiResult.fecha).toLocaleString('es-CO') : new Date().toLocaleString('es-CO');
   const saldoRes = apiResult?.saldoResultante;
 
+  const achRingColor = 'rgba(245,181,68,';
+  const checkBg     = isAch ? 'rgba(245,181,68,0.12)' : 'rgba(91,216,160,0.12)';
+  const checkBorder = isAch ? '1px solid rgba(245,181,68,0.4)' : '1px solid rgba(91,216,160,0.4)';
+  const checkColor  = isAch ? 'var(--warn)' : 'var(--success)';
+  const checkGlow   = isAch ? '0 0 40px rgba(245,181,68,0.3)' : '0 0 40px rgba(91,216,160,0.3)';
+  const ringStyle   = isAch ? 'rgba(245,181,68,0.15)' : 'rgba(91,216,160,0.15)';
+
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-1)', display: 'flex', flexDirection: 'column', padding: '90px 24px 32px' }}>
       <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', height: 160 }}>
         {[80, 64, 48].map((s, i) => (
-          <div key={i} style={{ position: 'absolute', width: s + 60, height: s + 60, borderRadius: '50%', border: '1px solid rgba(91,216,160,0.15)', animation: `nx-pulse 2s ease-in-out ${i * 0.3}s infinite` }}/>
+          <div key={i} style={{ position: 'absolute', width: s + 60, height: s + 60, borderRadius: '50%', border: `1px solid ${ringStyle}`, animation: `nx-pulse 2s ease-in-out ${i * 0.3}s infinite` }}/>
         ))}
-        <div className="fade-up" style={{ width: 80, height: 80, borderRadius: 40, background: 'rgba(91,216,160,0.12)', border: '1px solid rgba(91,216,160,0.4)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(91,216,160,0.3)' }}>
-          <Icon name="check" size={36} stroke={2.4}/>
+        <div className="fade-up" style={{ width: 80, height: 80, borderRadius: 40, background: checkBg, border: checkBorder, color: checkColor, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: checkGlow }}>
+          <Icon name={isAch ? 'alert' : 'check'} size={36} stroke={2.4}/>
         </div>
       </div>
 
       <div className="fade-up" style={{ textAlign: 'center', marginTop: 32, animationDelay: '0.1s' }}>
-        <div className="eyebrow">Confirmado</div>
+        <div className="eyebrow">{isAch ? 'Enviada' : 'Confirmado'}</div>
         <div style={{ fontSize: 26, fontWeight: 500, marginTop: 8, letterSpacing: '-0.02em' }}>{txt.t}</div>
         <div style={{ fontSize: 14, color: 'var(--text-2)', marginTop: 8, lineHeight: 1.5 }}>{txt.s}</div>
+        {isAch && (
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
+            Te notificamos en la campanita 🔔 cuando se confirme
+          </div>
+        )}
       </div>
 
       <div className="fade-up" style={{ marginTop: 28, animationDelay: '0.18s' }}>
@@ -52,7 +67,9 @@ const SuccessScreen = ({ data, onDone }) => {
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span className="eyebrow">Estado</span>
-            <span className="mono" style={{ fontSize: 12, color: 'var(--success)' }}>EXITOSA</span>
+            <span className="mono" style={{ fontSize: 12, color: isAch ? 'var(--warn)' : 'var(--success)' }}>
+              {isAch ? 'PENDIENTE ACH' : 'EXITOSA'}
+            </span>
           </div>
         </div>
       </div>

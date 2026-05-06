@@ -60,7 +60,7 @@ export const Sidebar = ({ active, onNav, collapsed }) => {
   );
 };
 
-export const Topbar = ({ user = 'Usuario', onLogout }) => {
+export const Topbar = ({ user = 'Usuario', onLogout, notifCount = 0, onBell }) => {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -89,6 +89,12 @@ export const Topbar = ({ user = 'Usuario', onLogout }) => {
       <div style={{ width: 1, height: 24, background: 'var(--stroke-2)' }}/>
       <div className="mono" style={{ fontSize: 11.5, color: 'var(--text-2)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{t} <span style={{ color: 'var(--text-3)' }}>BOG</span></div>
       <div style={{ width: 1, height: 24, background: 'var(--stroke-2)' }}/>
+      <button onClick={onBell} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
+        <Icon name="bell" size={16}/>
+        {notifCount > 0 && (
+          <div style={{ position: 'absolute', top: 5, right: 5, width: 7, height: 7, borderRadius: 4, background: 'var(--electric)', border: '1.5px solid var(--bg-0)', boxShadow: '0 0 6px var(--electric-glow)' }}/>
+        )}
+      </button>
       <button onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px 6px 6px', borderRadius: 10, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', cursor: 'pointer', flexShrink: 0 }}>
         <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #2E6BFF, #142659)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{initials}</div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.25, minWidth: 0 }}>

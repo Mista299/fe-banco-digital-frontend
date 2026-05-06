@@ -54,7 +54,7 @@ export const TxRow = ({ t, dense = false, onClick }) => {
 };
 
 // Dashboard A — Wallet stack
-export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username }) => {
+export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, notifCount = 0, onBell }) => {
   const [selIdx, setSelIdx] = useState(0);
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);
   const name = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Cliente';
@@ -66,8 +66,11 @@ export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction
           <div className="eyebrow">Buenos días</div>
           <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>Sr. {name}</div>
         </div>
-        <button className="press" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <button onClick={onBell} className="press" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
           <Icon name="bell" size={18}/>
+          {notifCount > 0 && (
+            <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, background: 'var(--electric)', border: '1.5px solid var(--bg-2)', boxShadow: '0 0 6px var(--electric-glow)' }}/>
+          )}
         </button>
       </div>
 
@@ -144,7 +147,7 @@ export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction
 };
 
 // Dashboard B — Terminal style
-export const DashboardB = ({ accounts = [], recentTxns = [], onAccount, onAction, username }) => {
+export const DashboardB = ({ accounts = [], recentTxns = [], onAccount, onAction, username, notifCount = 0, onBell }) => {
   const [selIdx, setSelIdx] = useState(0);
   const acct = accounts[selIdx] ? accountWithMeta(accounts[selIdx], selIdx) : null;
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);

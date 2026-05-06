@@ -192,15 +192,58 @@ export const DesktopDetalle = ({ account, txns = [], onBack, onAction }) => {
   );
 };
 
-export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
-  const [srcId, setSrcId] = useState(() => accounts[0]?.idCuenta ?? accounts[0]?.id ?? null);
-  const [amount, setAmount] = useState('250000');
-  const [dest, setDest] = useState('');
+const BANCOS_DESKTOP = [
+  'Bancolombia', 'Banco de Bogotá', 'Davivienda', 'BBVA Colombia',
+  'Banco Popular', 'Nequi', 'Daviplata', 'Banco Agrario', 'AV Villas',
+  'Colpatria', 'Banco de Occidente', 'Caja Social', 'Lulo Bank',
+  'Nu Colombia', 'Itaú', 'Scotiabank Colpatria',
+];
+const TIPOS_DOC_D = ['CC', 'CE', 'NIT', 'Pasaporte', 'TI'];
 
-  const srcAcct = accounts.find(a => (a.idCuenta || a.id) === srcId) || accounts[0];
+export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
+  const [bancoType, setBancoType]   = useState('nexus');
+  const [srcId, setSrcId]           = useState(() => accounts[0]?.idCuenta ?? accounts[0]?.id ?? null);
+  const [amount, setAmount]         = useState('250000');
+  const [dest, setDest]             = useState('');
+  // ACH fields
+  const [destBanco, setDestBanco]   = useState('');
+  const [destTipo, setDestTipo]     = useState('AHORROS');
+  const [destNum, setDestNum]       = useState('');
+  const [nomRec, setNomRec]         = useState('');
+  const [tipoDoc, setTipoDoc]       = useState('CC');
+  const [numDoc, setNumDoc]         = useState('');
+
+  const srcAcct  = accounts.find(a => (a.idCuenta || a.id) === srcId) || accounts[0];
   const amountNum = Number(amount) || 0;
-  const balance = srcAcct ? (srcAcct.saldo ?? srcAcct.balance ?? 0) : 0;
-  const valid = dest.length >= 6 && amountNum > 0 && amountNum <= balance && srcAcct;
+  const balance   = srcAcct ? (srcAcct.saldo ?? srcAcct.balance ?? 0) : 0;
+
+  const nexusValid = dest.length >= 6 && amountNum > 0 && amountNum <= balance && !!srcAcct;
+  const achValid   = destBanco && destNum.length >= 6 && nomRec && numDoc
+                      && amountNum > 0 && amountNum <= balance && !!srcAcct;
+  const valid = bancoType === 'nexus' ? nexusValid : achValid;
+
+  const handleConfirm = () => {
+    if (!valid) return;
+    if (bancoType === 'nexus') {
+      onConfirm({ kind: 'transfer', amount: amountNum, destAcct: dest, srcId });
+    } else {
+      onConfirm({
+        kind: 'ach', srcId,
+        destBanco, destTipoCuenta: destTipo, destNumCuenta: destNum,
+        nombreReceptor: nomRec, tipoDocReceptor: tipoDoc, numDocReceptor: numDoc,
+        amount: amountNum,
+      });
+    }
+  };
+
+  const tabStyle = (active) => ({
+    flex: 1, height: 34, borderRadius: 9, border: 'none', cursor: 'pointer',
+    background: active ? 'var(--bg-1)' : 'transparent',
+    color: active ? 'var(--text-1)' : 'var(--text-3)',
+    fontSize: 12.5, fontWeight: active ? 600 : 400,
+    fontFamily: 'var(--font-sans)', transition: 'background 0.15s, color 0.15s',
+    boxShadow: active ? '0 1px 0 rgba(255,255,255,0.06)' : 'none',
+  });
 
   return (
     <div style={{ padding: 28 }}>
@@ -209,6 +252,16 @@ export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 440px', gap: 24, maxWidth: 1320 }}>
         <div className="nx-card" style={{ padding: 28 }}>
+
+          {/* banco type toggle */}
+          <div style={{ marginBottom: 28 }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Tipo de transferencia</div>
+            <div style={{ display: 'flex', background: 'var(--bg-3)', border: '1px solid var(--stroke-1)', borderRadius: 12, padding: 4, gap: 4 }}>
+              <button onClick={() => setBancoType('nexus')} style={tabStyle(bancoType === 'nexus')}>Banco Nexus · Interna</button>
+              <button onClick={() => setBancoType('otro')} style={tabStyle(bancoType === 'otro')}>Otro banco · ACH</button>
+            </div>
+          </div>
+
           <div className="eyebrow" style={{ marginBottom: 8 }}>01 · Cuenta origen</div>
           {accounts.length === 0 && (
             <div style={{ padding: 24, color: 'var(--text-3)', fontSize: 13 }}>No hay cuentas disponibles</div>
@@ -232,13 +285,64 @@ export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
             })}
           </div>
 
-          <div className="eyebrow" style={{ marginBottom: 8 }}>02 · Cuenta destino · Banco Nexus</div>
-          <div style={{ marginBottom: 24 }}>
-            <label className="nx-label">Número de cuenta destino</label>
-            <input className="nx-input" value={dest} onChange={e => setDest(e.target.value)} placeholder="Número de cuenta Nexus"/>
-          </div>
+          {bancoType === 'nexus' ? (
+            <>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>02 · Cuenta destino · Banco Nexus</div>
+              <div style={{ marginBottom: 24 }}>
+                <label className="nx-label">Número de cuenta destino</label>
+                <input className="nx-input" value={dest} onChange={e => setDest(e.target.value)} placeholder="Número de cuenta Nexus"/>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>02 · Datos del destinatario</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                <div>
+                  <label className="nx-label">Banco destino</label>
+                  <select className="nx-input" value={destBanco} onChange={e => setDestBanco(e.target.value)}
+                    style={{ appearance: 'none', background: 'var(--bg-2)', color: destBanco ? 'var(--text-1)' : 'var(--text-3)' }}>
+                    <option value="">Seleccionar banco…</option>
+                    {BANCOS_DESKTOP.map(b => <option key={b} value={b} style={{ background: 'var(--bg-2)', color: 'var(--text-1)' }}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="nx-label">Tipo de cuenta</label>
+                  <div style={{ display: 'flex', background: 'var(--bg-3)', border: '1px solid var(--stroke-1)', borderRadius: 10, padding: 3, gap: 3, height: 44 }}>
+                    {['AHORROS', 'CORRIENTE'].map(t => (
+                      <button key={t} onClick={() => setDestTipo(t)} style={{
+                        flex: 1, borderRadius: 7, border: 'none', cursor: 'pointer',
+                        background: destTipo === t ? 'var(--bg-1)' : 'transparent',
+                        color: destTipo === t ? 'var(--text-1)' : 'var(--text-3)',
+                        fontSize: 11, fontWeight: destTipo === t ? 600 : 400,
+                        fontFamily: 'var(--font-sans)',
+                      }}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="nx-label">Número de cuenta</label>
+                  <input className="nx-input mono" value={destNum} onChange={e => setDestNum(e.target.value.replace(/\D/g,''))} placeholder="Número de cuenta"/>
+                </div>
+                <div>
+                  <label className="nx-label">Nombre del receptor</label>
+                  <input className="nx-input" value={nomRec} onChange={e => setNomRec(e.target.value)} placeholder="Nombre completo"/>
+                </div>
+                <div>
+                  <label className="nx-label">Tipo de documento</label>
+                  <select className="nx-input" value={tipoDoc} onChange={e => setTipoDoc(e.target.value)}
+                    style={{ appearance: 'none', background: 'var(--bg-2)', color: 'var(--text-1)' }}>
+                    {TIPOS_DOC_D.map(t => <option key={t} value={t} style={{ background: 'var(--bg-2)' }}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="nx-label">Número de documento</label>
+                  <input className="nx-input mono" value={numDoc} onChange={e => setNumDoc(e.target.value.replace(/\D/g,''))} placeholder="Documento"/>
+                </div>
+              </div>
+            </>
+          )}
 
-          <div className="eyebrow" style={{ marginBottom: 8 }}>03 · Monto</div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>{bancoType === 'nexus' ? '03' : '03'} · Monto</div>
           <div>
             <label className="nx-label">Monto · COP</label>
             <div style={{ position: 'relative' }}>
@@ -269,17 +373,24 @@ export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
           <div className="eyebrow">Resumen</div>
           <div className="mono tnum" style={{ fontSize: 36, fontWeight: 500, letterSpacing: '-0.025em', marginTop: 12 }}>{fmtCOP(amountNum)}</div>
           <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {[
+            {(bancoType === 'nexus' ? [
               ['Desde',        srcAcct?.label || '—'],
               ['Cuenta origen',  maskAcct(srcAcct?.numeroCuenta || srcAcct?.number || '0000')],
               ['Hacia',        dest.length >= 4 ? maskAcct(dest) : '—'],
               ['Banco destino', 'Banco Nexus'],
               ['Comisión',     'Sin costo'],
               ['Tipo',         'Inmediata · Interna'],
-            ].map(([l, v]) => (
+            ] : [
+              ['Desde',        srcAcct?.label || '—'],
+              ['Banco destino', destBanco || '—'],
+              ['Cuenta destino', destNum.length >= 4 ? maskAcct(destNum) : '—'],
+              ['Tipo cuenta',  destTipo],
+              ['Receptor',     nomRec || '—'],
+              ['Plazo',        '1–2 días hábiles'],
+            ]).map(([l, v]) => (
               <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, fontSize: 13 }}>
                 <span style={{ color: 'var(--text-3)', whiteSpace: 'nowrap', flexShrink: 0 }}>{l}</span>
-                <span style={{ color: 'var(--text-1)', fontFamily: l.includes('uenta') || l === 'Hacia' ? 'var(--font-mono)' : 'inherit', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
+                <span style={{ color: 'var(--text-1)', fontFamily: 'inherit', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v}</span>
               </div>
             ))}
           </div>
@@ -289,16 +400,18 @@ export const DesktopTransfer = ({ accounts = [], onConfirm }) => {
             <span className="mono tnum">{fmtCOP(amountNum)}</span>
           </div>
           <button
-            onClick={() => valid && onConfirm({ kind: 'transfer', amount: amountNum, destAcct: dest, srcId })}
+            onClick={handleConfirm}
             className="nx-btn nx-btn-primary"
             disabled={!valid}
             style={{ width: '100%', marginTop: 24, opacity: valid ? 1 : 0.5 }}
           >
-            Confirmar transferencia <Icon name="arrow-up-right" size={16}/>
+            {bancoType === 'nexus' ? 'Confirmar transferencia' : 'Enviar orden ACH'} <Icon name="arrow-up-right" size={16}/>
           </button>
-          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(77,141,255,0.06)', border: '1px solid rgba(77,141,255,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icon name="shield" size={14} color="var(--electric)"/>
-            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>Transferencia segura · Banco Nexus · Sin costo.</span>
+          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: bancoType === 'nexus' ? 'rgba(77,141,255,0.06)' : 'rgba(245,181,68,0.06)', border: `1px solid ${bancoType === 'nexus' ? 'rgba(77,141,255,0.2)' : 'rgba(245,181,68,0.2)'}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icon name="shield" size={14} color={bancoType === 'nexus' ? 'var(--electric)' : 'var(--warn)'}/>
+            <span style={{ fontSize: 11, color: 'var(--text-2)' }}>
+              {bancoType === 'nexus' ? 'Transferencia segura · Banco Nexus · Sin costo.' : 'Red ACH Colombia · Se notifica al confirmarse · 1–2 días hábiles.'}
+            </span>
           </div>
         </div>
       </div>
@@ -461,32 +574,53 @@ export const DesktopSecurity = ({ accounts = [], onToast }) => (
   </div>
 );
 
-export const DesktopSuccess = ({ data, onDone }) => (
-  <div style={{ padding: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%' }}>
-    <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 32 }}>
-      {[1, 2, 3].map(i => (
-        <div key={i} style={{ position: 'absolute', inset: 0, borderRadius: 60, border: '1px solid rgba(91,216,160,0.3)', transform: `scale(${1 + i * 0.3})`, opacity: 1 - i * 0.3 }}/>
-      ))}
-      <div style={{ position: 'absolute', inset: 0, borderRadius: 60, background: 'rgba(91,216,160,0.12)', border: '1.5px solid var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success)' }}>
-        <Icon name="check" size={48} stroke={2}/>
-      </div>
-    </div>
-    <div className="eyebrow">Confirmado</div>
-    <div style={{ fontSize: 32, fontWeight: 500, marginTop: 12, letterSpacing: '-0.02em' }}>Transferencia exitosa</div>
-    <div className="mono tnum" style={{ fontSize: 24, marginTop: 14, color: 'var(--text-2)' }}>{fmtCOP(data?.amount || 0)}</div>
-    <div className="nx-card" style={{ padding: 20, marginTop: 28, width: 420 }}>
-      {[
-        ['Destino',    maskAcct(data?.destAcct || '0000')],
-        ['Monto',      fmtCOP(data?.amount || 0)],
-        ['Banco',      'Nexus Bank'],
-        ['Estado',     'EXITOSA'],
-      ].map(([l, v]) => (
-        <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, borderBottom: '1px solid var(--stroke-1)' }}>
-          <span style={{ color: 'var(--text-3)' }}>{l}</span>
-          <span className="mono" style={{ color: l === 'Estado' ? 'var(--success)' : 'var(--text-1)' }}>{v}</span>
+export const DesktopSuccess = ({ data, onDone }) => {
+  const isAch = data?.kind === 'ach';
+  const ringColor = isAch ? 'rgba(245,181,68,0.3)' : 'rgba(91,216,160,0.3)';
+  const iconBg    = isAch ? 'rgba(245,181,68,0.12)' : 'rgba(91,216,160,0.12)';
+  const iconBorder = isAch ? '1.5px solid var(--warn)' : '1.5px solid var(--success)';
+  const iconColor  = isAch ? 'var(--warn)' : 'var(--success)';
+  const rows = isAch ? [
+    ['Receptor',  data?.nombreReceptor || '—'],
+    ['Banco',     data?.destBanco || '—'],
+    ['Monto',     fmtCOP(data?.amount || 0)],
+    ['Estado',    'PENDIENTE ACH'],
+  ] : [
+    ['Destino',   maskAcct(data?.destAcct || '0000')],
+    ['Monto',     fmtCOP(data?.amount || 0)],
+    ['Banco',     'Nexus Bank'],
+    ['Estado',    'EXITOSA'],
+  ];
+
+  return (
+    <div style={{ padding: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100%' }}>
+      <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 32 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ position: 'absolute', inset: 0, borderRadius: 60, border: `1px solid ${ringColor}`, transform: `scale(${1 + i * 0.3})`, opacity: 1 - i * 0.3 }}/>
+        ))}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 60, background: iconBg, border: iconBorder, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor }}>
+          <Icon name={isAch ? 'alert' : 'check'} size={48} stroke={2}/>
         </div>
-      ))}
+      </div>
+      <div className="eyebrow">{isAch ? 'Enviada' : 'Confirmado'}</div>
+      <div style={{ fontSize: 32, fontWeight: 500, marginTop: 12, letterSpacing: '-0.02em' }}>
+        {isAch ? 'Orden ACH enviada' : 'Transferencia exitosa'}
+      </div>
+      <div className="mono tnum" style={{ fontSize: 24, marginTop: 14, color: 'var(--text-2)' }}>{fmtCOP(data?.amount || 0)}</div>
+      {isAch && (
+        <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-3)', textAlign: 'center', maxWidth: 360 }}>
+          Recibirás una notificación en la campanita cuando el banco confirme la operación.
+        </div>
+      )}
+      <div className="nx-card" style={{ padding: 20, marginTop: 28, width: 420 }}>
+        {rows.map(([l, v]) => (
+          <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, borderBottom: '1px solid var(--stroke-1)' }}>
+            <span style={{ color: 'var(--text-3)' }}>{l}</span>
+            <span className="mono" style={{ color: l === 'Estado' ? (isAch ? 'var(--warn)' : 'var(--success)') : 'var(--text-1)' }}>{v}</span>
+          </div>
+        ))}
+      </div>
+      <button onClick={onDone} className="nx-btn nx-btn-primary" style={{ marginTop: 24, width: 280 }}>Volver al inicio</button>
     </div>
-    <button onClick={onDone} className="nx-btn nx-btn-primary" style={{ marginTop: 24, width: 280 }}>Volver al inicio</button>
-  </div>
-);
+  );
+};
