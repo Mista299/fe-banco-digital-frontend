@@ -40,6 +40,7 @@ const App = () => {
   const [route, setRoute]           = useState('splash');
   const [navTab, setNavTab]         = useState('home');
   const [username, setUsername]     = useState('');
+  const [genero, setGenero]         = useState(null);
   const [accounts, setAccounts]     = useState([]);
   const [recentTxns, setRecentTxns] = useState([]);
   const [selectedAcct, setSelectedAcct] = useState(null);
@@ -101,8 +102,9 @@ const App = () => {
     return () => clearInterval(id);
   }, [notifs, showToast, loadDashboard]);
 
-  const handleLogin = async (user) => {
+  const handleLogin = async (user, userGenero) => {
     setUsername(user);
+    setGenero(userGenero ?? null);
     setRoute('loading');
     try {
       const data = await api.getDashboard();
@@ -119,7 +121,7 @@ const App = () => {
 
   const handleLogout = async () => {
     await api.logout().catch(() => {});
-    setUsername(''); setAccounts([]); setRecentTxns([]); setNotifs([]);
+    setUsername(''); setGenero(null); setAccounts([]); setRecentTxns([]); setNotifs([]);
     setRoute('login');
   };
 
@@ -196,7 +198,7 @@ const App = () => {
   else if (route === 'loading')  content = <LoadingScreen/>;
   else if (route === 'home') {
     const Dash = dashVariant === 'terminal' ? DashboardB : DashboardA;
-    content = <Dash accounts={accounts} recentTxns={recentTxns} username={username}
+    content = <Dash accounts={accounts} recentTxns={recentTxns} username={username} genero={genero}
       onAccount={(a) => { setSelectedAcct(a); setRoute('detalle'); }}
       onAction={goAction}
       notifCount={notifCount}

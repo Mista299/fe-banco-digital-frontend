@@ -97,17 +97,15 @@ const NexusCard = ({ account, variant = 'obsidian', size = 'md', tilt = false, o
                 </div>
               </div>
             )}
-            {hidden && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
-                color: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : 'rgba(255,255,255,0.5)',
-                textTransform: 'uppercase',
-              }}>
-                <span style={{ width: 5, height: 5, borderRadius: 99, background: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : '#888', boxShadow: status === 'ACTIVA' ? '0 0 6px #5BD8A0' : 'none' }}/>
-                {status}
-              </div>
-            )}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.18em',
+              color: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : 'rgba(255,255,255,0.5)',
+              textTransform: 'uppercase',
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: 99, background: status === 'ACTIVA' ? '#5BD8A0' : status === 'BLOQUEADA' ? '#FF6B7A' : '#888', boxShadow: status === 'ACTIVA' ? '0 0 6px #5BD8A0' : 'none' }}/>
+              {status}
+            </div>
           </div>
         </div>
       </div>

@@ -54,17 +54,18 @@ export const TxRow = ({ t, dense = false, onClick }) => {
 };
 
 // Dashboard A — Wallet stack
-export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, notifCount = 0, onBell }) => {
+export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, genero, notifCount = 0, onBell }) => {
   const [selIdx, setSelIdx] = useState(0);
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);
   const name = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Cliente';
+  const tratamiento = genero === 'FEMENINO' ? 'Sra.' : 'Sr.';
 
   return (
     <Screen padTop={56} padBottom={120}>
       <div className="fade-up" style={{ padding: '8px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div className="eyebrow">Buenos días</div>
-          <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>Sr. {name}</div>
+          <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>{tratamiento} {name}</div>
         </div>
         <button onClick={onBell} className="press" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
           <Icon name="bell" size={18}/>

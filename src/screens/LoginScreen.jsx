@@ -13,8 +13,8 @@ const LoginScreen = ({ onLogin, onRegister }) => {
     if (!username || !password) { setError('Ingrese usuario y contraseña'); return; }
     setLoading(true); setError('');
     try {
-      await api.login(username, password);
-      onLogin(username);
+      const resp = await api.login(username, password);
+      onLogin(username, resp.genero);
     } catch (e) {
       setError(e.message || 'Credenciales inválidas');
     } finally {
