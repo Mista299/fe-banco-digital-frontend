@@ -15,6 +15,7 @@ import PerfilScreen     from './screens/PerfilScreen';
 import SeguridadScreen  from './screens/SeguridadScreen';
 import SuccessScreen    from './screens/SuccessScreen';
 import ErrorScreen      from './screens/ErrorScreen';
+import ExtractosScreen  from './screens/ExtractosScreen';
 
 import * as api from './api';
 
@@ -136,6 +137,7 @@ const App = () => {
     else if (id === 'withdraw')  setRoute('withdraw');
     else if (id === 'history')   { setNavTab('history'); setRoute('history'); }
     else if (id === 'security')  { setNavTab('security'); setRoute('security'); }
+    else if (id === 'extractos') setRoute('extractos');
   };
 
   const handleConfirm = async (data) => {
@@ -215,6 +217,7 @@ const App = () => {
   else if (route === 'security')  content = <SeguridadScreen accounts={accounts} onBack={() => { setRoute('home'); setNavTab('home'); }} onAction={(d) => setPending(d)}/>;
   else if (route === 'success')   content = <SuccessScreen data={completed} onDone={() => { setCompleted(null); setRoute('home'); setNavTab('home'); }}/>;
   else if (route === 'error')     content = <ErrorScreen kind={errKind} message={errMsg} onRetry={() => setRoute('home')} onLogin={() => { setRoute('login'); setNavTab('home'); }}/>;
+  else if (route === 'extractos') content = <ExtractosScreen accounts={accounts} defaultAccount={selectedAcct} onBack={() => setRoute(selectedAcct ? 'detalle' : 'home')}/>;
 
   const W = 402, H = 874;
 

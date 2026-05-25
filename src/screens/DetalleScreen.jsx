@@ -89,6 +89,23 @@ const DetalleScreen = ({ account, onBack, onAction }) => {
         ))}
       </div>
 
+      <div className="fade-up" style={{ padding: '12px 20px 0', animationDelay: '0.12s' }}>
+        <button
+          onClick={() => onAction('extractos')}
+          className="press"
+          style={{ width: '100%', padding: '14px 16px', borderRadius: 14, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left' }}
+        >
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(77,141,255,0.08)', color: 'var(--electric)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name="list" size={16}/>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>Documentos y Extractos</div>
+            <div className="eyebrow" style={{ marginTop: 2 }}>Descarga tu estado de cuenta en PDF</div>
+          </div>
+          <Icon name="chevron-right" size={16} color="var(--text-3)"/>
+        </button>
+      </div>
+
       {txns.length > 0 && (
         <>
           <div className="fade-up" style={{ padding: '24px 20px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animationDelay: '0.14s' }}>

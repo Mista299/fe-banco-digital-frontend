@@ -177,3 +177,6 @@ export const generarTokenRetiro = (idCuenta, monto) =>
 
 export const consultarTokenRetiro = (codigo) =>
   apiFetch(`/api/v1/token-retiro/${codigo}`).then(unwrap);
+
+export const descargarExtracto = (idCuenta, anio, mes) =>
+  apiFetch(`/api/v1/extractos/${idCuenta}/${anio}/${mes}`);
