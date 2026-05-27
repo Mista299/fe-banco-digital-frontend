@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Icon, fmtCOP, Screen, SubHeader } from '../components/primitives';
 import NexusCard from '../components/Card';
-import { TxRow } from './Dashboard';
+import { TxExpandable } from './Dashboard';
 import * as api from '../api';
 
 const StatTile = ({ label, value, delta, up }) => (
@@ -16,6 +16,7 @@ const DetalleScreen = ({ account, onBack, onAction }) => {
   const [txns, setTxns] = useState([]);
   const [copied, setCopied] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     if (account?.idCuenta) {
@@ -112,12 +113,9 @@ const DetalleScreen = ({ account, onBack, onAction }) => {
             <div className="eyebrow">Movimientos · {label}</div>
             <button onClick={() => onAction('history')} style={{ background: 'transparent', border: 'none', color: 'var(--electric)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase' }}>Ver todo</button>
           </div>
-          <div className="fade-up nx-card" style={{ margin: '0 20px', overflow: 'hidden', animationDelay: '0.16s' }}>
+          <div className="fade-up" style={{ margin: '0 20px', display: 'flex', flexDirection: 'column', gap: 6, animationDelay: '0.16s' }}>
             {txns.slice(0, 5).map((t, i) => (
-              <div key={t.idTransaccion || i}>
-                <TxRow t={t}/>
-                {i < Math.min(txns.length, 5) - 1 && <div style={{ height: 1, background: 'var(--stroke-1)', marginLeft: 60 }}/>}
-              </div>
+              <TxExpandable key={t.idTransaccion || `idx-${i}`} t={t} i={i} expandedId={expandedId} setExpandedId={setExpandedId}/>
             ))}
           </div>
         </>

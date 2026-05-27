@@ -2,6 +2,101 @@ import { useState } from 'react';
 import { Icon, fmtCOP, maskAcct, NxWordmark, Screen } from '../components/primitives';
 import NexusCard from '../components/Card';
 
+const fmtDateTime = (raw) => {
+  if (!raw) return '—';
+  return new Date(raw).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const statusColor = (estado) => {
+  if (!estado) return 'var(--text-3)';
+  if (estado === 'EXITOSO' || estado === 'EXITOSA') return 'var(--success)';
+  if (estado === 'FALLIDO' || estado === 'FALLIDA') return 'var(--danger)';
+  return 'var(--warn)';
+};
+
+const TxLabel = (tipo) =>
+  tipo === 'DEPOSITO' ? 'Depósito'
+  : tipo === 'RETIRO' ? 'Retiro en cajero'
+  : tipo === 'RETIRO_SIN_TARJETA' ? 'Retiro sin tarjeta'
+  : tipo === 'TRANSFERENCIA' ? 'Transferencia'
+  : tipo || 'Movimiento';
+
+export const TxExpandable = ({ t, i, expandedId, setExpandedId }) => {
+  const txId  = t.idTransaccion || `idx-${i}`;
+  const isOpen = expandedId === txId;
+  const monto  = Number(t.monto ?? 0);
+  const isIn   = monto > 0;
+  const label  = TxLabel(t.concepto || t.tipo || '');
+
+  return (
+    <div className="nx-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <button
+        onClick={() => setExpandedId(isOpen ? null : txId)}
+        style={{ all: 'unset', boxSizing: 'border-box', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px' }}
+      >
+        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isIn ? 'rgba(91,216,160,0.12)' : 'rgba(255,107,122,0.10)', color: isIn ? 'var(--success)' : 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${isIn ? 'rgba(91,216,160,0.22)' : 'rgba(255,107,122,0.28)'}` }}>
+          <Icon name={isIn ? 'arrow-down-left' : 'arrow-up-right'} size={16}/>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>{fmtDateTime(t.fechaHora || t.fecha)}</div>
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <div className="tnum" style={{ fontSize: 13.5, fontWeight: 500, color: isIn ? 'var(--success)' : 'var(--danger)' }}>
+            {isIn ? '+' : '−'} {fmtCOP(Math.abs(monto))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6, marginTop: 3 }}>
+            {t.estado && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', color: statusColor(t.estado) }}>{t.estado}</span>
+            )}
+            <Icon name={isOpen ? 'chevron-up' : 'chevron-down'} size={12} color="var(--text-3)"/>
+          </div>
+        </div>
+      </button>
+      {isOpen && (
+        <div style={{ borderTop: '1px solid var(--stroke-1)', padding: '12px 16px', background: 'var(--bg-2)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Cuenta origen</div>
+              <div className="mono" style={{ fontSize: 11, color: t.cuentaOrigen ? 'var(--text-1)' : 'var(--text-4)' }}>
+                {t.cuentaOrigen ? `#${maskAcct(t.cuentaOrigen)}` : '—'}
+              </div>
+            </div>
+            <div>
+              <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Cuenta destino</div>
+              <div className="mono" style={{ fontSize: 11, color: t.cuentaDestino ? 'var(--text-1)' : 'var(--text-4)' }}>
+                {t.cuentaDestino ? `#${maskAcct(t.cuentaDestino)}` : '—'}
+              </div>
+            </div>
+            {t.bancoDestino && (
+              <div>
+                <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Banco destino</div>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--text-2)' }}>{t.bancoDestino}</div>
+              </div>
+            )}
+            {t.nombreReceptorExterno && (
+              <div>
+                <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Receptor</div>
+                <div className="mono" style={{ fontSize: 11, color: 'var(--text-2)' }}>{t.nombreReceptorExterno}</div>
+              </div>
+            )}
+            {t.saldoResultante != null && (
+              <div>
+                <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Saldo resultante</div>
+                <div className="mono tnum" style={{ fontSize: 11, color: 'var(--text-2)' }}>{fmtCOP(Number(t.saldoResultante))}</div>
+              </div>
+            )}
+            <div>
+              <div className="eyebrow" style={{ fontSize: 7.5, marginBottom: 3 }}>Referencia</div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--electric)', letterSpacing: '0.04em' }}>{t.idTransaccion || '—'}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FINISHES = ['obsidian', 'midnight', 'graphite'];
 
 const accountWithMeta = (a, i) => ({
@@ -56,6 +151,7 @@ export const TxRow = ({ t, dense = false, onClick }) => {
 // Dashboard A — Wallet stack
 export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, genero, notifCount = 0, onBell, onSwitchToAdmin }) => {
   const [selIdx, setSelIdx] = useState(0);
+  const [expandedId, setExpandedId] = useState(null);
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);
   const name = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Cliente';
   const tratamiento = genero === 'FEMENINO' ? 'Sra.' : 'Sr.';
@@ -147,12 +243,9 @@ export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction
             <div className="eyebrow">Actividad reciente</div>
             <button onClick={() => onAction('history')} style={{ background: 'transparent', border: 'none', color: 'var(--electric)', fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', cursor: 'pointer', textTransform: 'uppercase' }}>Ver todo</button>
           </div>
-          <div className="nx-card" style={{ overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {recentTxns.slice(0, 4).map((t, i) => (
-              <div key={t.idTransaccion || i}>
-                <TxRow t={t}/>
-                {i < Math.min(recentTxns.length, 4) - 1 && <div style={{ height: 1, background: 'var(--stroke-1)', marginLeft: 60 }}/>}
-              </div>
+              <TxExpandable key={t.idTransaccion || `idx-${i}`} t={t} i={i} expandedId={expandedId} setExpandedId={setExpandedId}/>
             ))}
           </div>
         </div>
@@ -164,6 +257,7 @@ export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction
 // Dashboard B — Terminal style
 export const DashboardB = ({ accounts = [], recentTxns = [], onAccount, onAction, username, notifCount = 0, onBell }) => {
   const [selIdx, setSelIdx] = useState(0);
+  const [expandedId, setExpandedId] = useState(null);
   const acct = accounts[selIdx] ? accountWithMeta(accounts[selIdx], selIdx) : null;
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);
   const name = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Cliente';
@@ -230,15 +324,12 @@ export const DashboardB = ({ accounts = [], recentTxns = [], onAccount, onAction
 
       {recentTxns.length > 0 && (
         <div className="fade-up" style={{ padding: '24px 20px 0', animationDelay: '0.16s' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <div style={{ marginBottom: 10 }}>
             <div className="eyebrow">Últimos movimientos</div>
           </div>
-          <div className="nx-card" style={{ overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {recentTxns.slice(0, 5).map((t, i) => (
-              <div key={t.idTransaccion || i}>
-                <TxRow t={t} dense/>
-                {i < Math.min(recentTxns.length, 5) - 1 && <div style={{ height: 1, background: 'var(--stroke-1)', marginLeft: 60 }}/>}
-              </div>
+              <TxExpandable key={t.idTransaccion || `idx-${i}`} t={t} i={i} expandedId={expandedId} setExpandedId={setExpandedId}/>
             ))}
           </div>
         </div>
