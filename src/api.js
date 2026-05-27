@@ -1,6 +1,8 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
 let refreshing = null;
+let _onSessionExpired = null;
+export const setSessionExpiredHandler = (fn) => { _onSessionExpired = fn; };
 
 async function apiFetch(path, options = {}) {
   const { headers = {}, ...rest } = options;
@@ -37,6 +39,7 @@ async function apiFetch(path, options = {}) {
       });
     }
 
+    _onSessionExpired?.();
     throw Object.assign(new Error('Sesión expirada'), { status: 401 });
   }
 
@@ -55,6 +58,20 @@ async function unwrap(res) {
   }
 
   return json;
+}
+
+// Desenvuelve Spring HATEOAS CollectionModel → array plano.
+// Si ya es array lo devuelve sin cambios.
+// Si no hay _embedded (colección vacía) devuelve [].
+function unwrapCollection(json) {
+  if (Array.isArray(json)) return json;
+  if (json?._embedded) {
+    const vals = Object.values(json._embedded);
+    if (vals.length > 0 && Array.isArray(vals[0])) {
+      return vals[0].map(({ _links, ...data }) => data);
+    }
+  }
+  return [];
 }
 
 export const login = (username, password) =>
@@ -91,6 +108,12 @@ export const getDashboard = () =>
       return cuentas.map(c => ({ ...c, nombreCliente: c.nombreCliente ?? clientName }));
     });
 
+export const depositar = (idCuenta, monto) =>
+  apiFetch('/api/v1/transacciones/depositar', {
+    method: 'POST',
+    body: JSON.stringify({ idCuenta, monto }),
+  }).then(unwrap);
+
 export const retirar = (idCuenta, monto) =>
   apiFetch('/api/v1/transacciones/retirar', {
     method: 'POST',
@@ -104,9 +127,9 @@ export const transferir = (idCuentaOrigen, numeroCuentaDestino, monto) =>
   }).then(unwrap);
 
 export const transferirMismoBanco = (idCuentaOrigen, numeroCuentaOrigen, numeroCuentaDestino, monto) =>
-  apiFetch('/api/v1/transacciones/transferencia', {
+  apiFetch('/api/v1/transacciones/transferir', {
     method: 'POST',
-    body: JSON.stringify({ idCuentaOrigen, numeroCuentaOrigen, numeroCuentaDestino, monto }),
+    body: JSON.stringify({ idCuentaOrigen, numeroCuentaDestino, monto }),
   }).then(unwrap);
 
 export const getMovimientos = (idCuenta) =>
@@ -180,3 +203,66 @@ export const consultarTokenRetiro = (codigo) =>
 
 export const descargarExtracto = (idCuenta, anio, mes) =>
   apiFetch(`/api/v1/extractos/${idCuenta}/${anio}/${mes}`);
+
+// ── Admin role detection ──────────────────────────────────────────────────
+const getMiRol = () =>
+  apiFetch('/api/v1/clientes/me/rol').then(unwrap).catch(() => ({ rol: 'CLIENTE' }));
+
+export const isAdmin = () =>
+  getMiRol().then(d => d.rol === 'ADMIN').catch(() => false);
+
+export const isGerente = () =>
+  getMiRol().then(d => d.rol === 'GERENTE').catch(() => false);
+
+// ── HU-16: Admin Cuentas ──────────────────────────────────────────────────
+export const getSolicitudesPendientes = () =>
+  apiFetch('/api/v1/admin/cuentas/pendientes').then(unwrap).then(unwrapCollection);
+
+export const aprobarCuenta = (id) =>
+  apiFetch(`/api/v1/admin/cuentas/${id}/aprobar`, { method: 'PATCH' }).then(unwrap);
+
+export const rechazarCuenta = (id) =>
+  apiFetch(`/api/v1/admin/cuentas/${id}/rechazar`, { method: 'PATCH' }).then(unwrap);
+
+// ── Reportes Maestros ────────────────────────────────────────────────────
+export const getReporteMaestro = (inicio, fin) =>
+  apiFetch(`/api/v1/reportes?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`).then(unwrap);
+
+export const exportarReporteCSV = (inicio, fin) =>
+  apiFetch(`/api/v1/reportes/csv?inicio=${encodeURIComponent(inicio)}&fin=${encodeURIComponent(fin)}`);
+
+// ── HU-17: Saldos Consolidados ────────────────────────────────────────────
+export const getConsolidadoSaldos = () =>
+  apiFetch('/api/v1/reportes/saldos/consolidado').then(unwrap);
+
+export const getSaldosPorEstado = (estado) =>
+  apiFetch(`/api/v1/reportes/saldos/estado?estado=${estado}`).then(unwrap).then(unwrapCollection);
+
+export const getSaldosPorRango = (min, max) => {
+  const q = max != null ? `min=${min}&max=${max}` : `min=${min}`;
+  return apiFetch(`/api/v1/reportes/saldos/rango?${q}`).then(unwrap).then(unwrapCollection);
+};
+
+export const getSaldosTiempoReal = () =>
+  apiFetch('/api/v1/reportes/saldos/tiempo-real').then(unwrap).then(unwrapCollection);
+
+// ── HU-18: Actividad por Cliente ──────────────────────────────────────────
+export const buscarActividadPorDocumento = (documento, fechaInicio, fechaFin, tipo) => {
+  const p = new URLSearchParams({ documento });
+  if (fechaInicio) p.append('fechaInicio', fechaInicio);
+  if (fechaFin)    p.append('fechaFin', fechaFin);
+  if (tipo && tipo !== 'TODOS') p.append('tipo', tipo);
+  return apiFetch(`/api/v1/admin/clientes/buscar/documento?${p}`).then(unwrap);
+};
+
+export const buscarActividadPorCuenta = (numeroCuenta, fechaInicio, fechaFin, tipo) => {
+  const p = new URLSearchParams({ numeroCuenta });
+  if (fechaInicio) p.append('fechaInicio', fechaInicio);
+  if (fechaFin)    p.append('fechaFin', fechaFin);
+  if (tipo && tipo !== 'TODOS') p.append('tipo', tipo);
+  return apiFetch(`/api/v1/admin/clientes/buscar/cuenta?${p}`).then(unwrap);
+};
+
+// ── HU-18 Escenario 4: Log de Auditoría desde BD ─────────────────────────────
+export const getAuditoriaLog = () =>
+  apiFetch('/api/v1/admin/auditoria').then(unwrap).then(unwrapCollection);

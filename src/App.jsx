@@ -16,6 +16,7 @@ import SeguridadScreen  from './screens/SeguridadScreen';
 import SuccessScreen    from './screens/SuccessScreen';
 import ErrorScreen      from './screens/ErrorScreen';
 import ExtractosScreen  from './screens/ExtractosScreen';
+import AdminPanelScreen from './screens/AdminPanelScreen';
 
 import * as api from './api';
 
@@ -53,6 +54,8 @@ const App = () => {
   const [dashVariant]               = useState('wallet');
   const [notifs, setNotifs]         = useState([]);
   const [notifPanel, setNotifPanel] = useState(false);
+  const [userRole, setUserRole]     = useState(null);
+  const [hasClientAccounts, setHasClientAccounts] = useState(false);
 
   const notifCount = notifs.filter(n => !n.leida).length;
 
@@ -73,6 +76,17 @@ const App = () => {
     } catch (e) {
       if (e.status === 401) setRoute('login');
     }
+  }, []);
+
+  // Redirigir al login cuando el refresh token expira
+  useEffect(() => {
+    api.setSessionExpiredHandler(() => {
+      setRoute('login');
+      setUsername('');
+      setAccounts([]);
+      setRecentTxns([]);
+      setNotifs([]);
+    });
   }, []);
 
   // Polling de notificaciones ACH pendientes
@@ -107,6 +121,39 @@ const App = () => {
     setUsername(user);
     setGenero(userGenero ?? null);
     setRoute('loading');
+
+    const adminFlag = await api.isAdmin().catch(() => false);
+    if (adminFlag) {
+      setUserRole('ADMIN');
+      const cuentas = await api.getDashboard().catch(() => []);
+      const enriched = Array.isArray(cuentas) ? cuentas.map(addMeta) : [];
+      if (enriched.length > 0) {
+        setAccounts(enriched);
+        setHasClientAccounts(true);
+        const active = enriched.find(a => a.estado === 'ACTIVA');
+        if (active?.idCuenta) api.getMovimientos(active.idCuenta).then(setRecentTxns).catch(() => {});
+      }
+      setRoute('admin-home');
+      showToast(`Bienvenido, ${user}`, 'success');
+      return;
+    }
+
+    const gerenteFlag = await api.isGerente().catch(() => false);
+    if (gerenteFlag) {
+      setUserRole('GERENTE');
+      const cuentas = await api.getDashboard().catch(() => []);
+      const enriched = Array.isArray(cuentas) ? cuentas.map(addMeta) : [];
+      if (enriched.length > 0) {
+        setAccounts(enriched);
+        setHasClientAccounts(true);
+        const active = enriched.find(a => a.estado === 'ACTIVA');
+        if (active?.idCuenta) api.getMovimientos(active.idCuenta).then(setRecentTxns).catch(() => {});
+      }
+      setRoute('admin-home');
+      showToast(`Bienvenido, ${user}`, 'success');
+      return;
+    }
+
     try {
       const data = await api.getDashboard();
       const enriched = data.map(addMeta);
@@ -123,8 +170,12 @@ const App = () => {
   const handleLogout = async () => {
     await api.logout().catch(() => {});
     setUsername(''); setGenero(null); setAccounts([]); setRecentTxns([]); setNotifs([]);
+    setUserRole(null); setHasClientAccounts(false);
     setRoute('login');
   };
+
+  const switchToClient = () => { setRoute('home'); setNavTab('home'); };
+  const switchToAdmin  = () => setRoute('admin-home');
 
   const goTab = (id) => {
     setNavTab(id);
@@ -204,7 +255,8 @@ const App = () => {
       onAccount={(a) => { setSelectedAcct(a); setRoute('detalle'); }}
       onAction={goAction}
       notifCount={notifCount}
-      onBell={() => setNotifPanel(true)}/>;
+      onBell={() => setNotifPanel(true)}
+      onSwitchToAdmin={(userRole === 'ADMIN' || userRole === 'GERENTE') ? switchToAdmin : undefined}/>;
   }
   else if (route === 'detalle')   content = <DetalleScreen account={selectedAcct} onBack={() => setRoute('home')} onAction={goAction}/>;
   else if (route === 'transfer')  content = <TransferirScreen accounts={activeAccounts} onBack={() => setRoute('home')} onConfirm={(d) => setPending(d)}/>;
@@ -218,6 +270,7 @@ const App = () => {
   else if (route === 'success')   content = <SuccessScreen data={completed} onDone={() => { setCompleted(null); setRoute('home'); setNavTab('home'); }}/>;
   else if (route === 'error')     content = <ErrorScreen kind={errKind} message={errMsg} onRetry={() => setRoute('home')} onLogin={() => { setRoute('login'); setNavTab('home'); }}/>;
   else if (route === 'extractos') content = <ExtractosScreen accounts={accounts} defaultAccount={selectedAcct} onBack={() => setRoute(selectedAcct ? 'detalle' : 'home')}/>;
+  else if (route === 'admin-home') content = <AdminPanelScreen username={username} userRole={userRole ?? 'ADMIN'} hasClientAccounts={hasClientAccounts} onSwitchToClient={switchToClient} onLogout={handleLogout}/>;
 
   const W = 402, H = 874;
 

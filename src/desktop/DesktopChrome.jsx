@@ -60,7 +60,7 @@ export const Sidebar = ({ active, onNav, collapsed }) => {
   );
 };
 
-export const Topbar = ({ user = 'Usuario', onLogout, notifCount = 0, onBell }) => {
+export const Topbar = ({ user = 'Usuario', onLogout, notifCount = 0, onBell, userRole, onSwitchToAdmin }) => {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -89,6 +89,19 @@ export const Topbar = ({ user = 'Usuario', onLogout, notifCount = 0, onBell }) =
       <div style={{ width: 1, height: 24, background: 'var(--stroke-2)' }}/>
       <div className="mono" style={{ fontSize: 11.5, color: 'var(--text-2)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{t} <span style={{ color: 'var(--text-3)' }}>BOG</span></div>
       <div style={{ width: 1, height: 24, background: 'var(--stroke-2)' }}/>
+      {(userRole === 'ADMIN' || userRole === 'GERENTE') && onSwitchToAdmin && (
+        <button onClick={onSwitchToAdmin} style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '5px 12px', borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+          background: userRole === 'GERENTE' ? 'rgba(245,181,68,0.10)' : 'rgba(255,107,122,0.10)',
+          border: `1px solid ${userRole === 'GERENTE' ? 'rgba(245,181,68,0.3)' : 'rgba(255,107,122,0.3)'}`,
+          color: userRole === 'GERENTE' ? 'var(--warn)' : 'var(--danger)',
+          fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.12em',
+        }}>
+          <Icon name="shield" size={13}/>
+          PANEL {userRole}
+        </button>
+      )}
       <button onClick={onBell} style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
         <Icon name="bell" size={16}/>
         {notifCount > 0 && (

@@ -107,6 +107,8 @@ export const DesktopDashboard = ({ accounts = [], txns = [], onAccount, onAction
   const [range, setRange] = useState('1M');
   const total = accounts.reduce((s, a) => s + (a.saldo ?? a.balance ?? 0), 0);
   const prev = total * 0.946;
+  const ingresos = txns.filter(t => t.kind === 'in').reduce((s, t) => s + t.amount, 0);
+  const egresos  = txns.filter(t => t.kind === 'out').reduce((s, t) => s + t.amount, 0);
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -115,10 +117,10 @@ export const DesktopDashboard = ({ accounts = [], txns = [], onAccount, onAction
         <Watchlist accounts={accounts} onAccount={onAccount}/>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <StatCard label="Ingresos · 30 días"  value="+$8.890.000" sub="estimado" delta="11.9%" up sparkline="M0 22 L20 18 L40 20 L60 14 L80 16 L100 10 L120 12 L140 8 L160 10 L180 5 L200 7"/>
-        <StatCard label="Egresos · 30 días"   value="−$4.142.500" sub="estimado" delta="6.5%" up={false} sparkline="M0 8 L20 12 L40 10 L60 16 L80 14 L100 18 L120 16 L140 22 L160 20 L180 24 L200 22"/>
-        <StatCard label="Ahorro neto"         value={fmtCOP(total)} sub="patrimonio total" delta="18.2%" up sparkline="M0 26 L20 22 L40 24 L60 16 L80 18 L100 12 L120 14 L140 8 L160 10 L180 4 L200 6"/>
-        <StatCard label="Cuentas activas"     value={String(accounts.filter(a => (a.estado || a.status) === 'ACTIVA').length)} sub={`de ${accounts.length} totales`}/>
+        <StatCard label="Ingresos · recientes" value={`+${fmtCOP(ingresos)}`} sub={`${txns.filter(t=>t.kind==='in').length} entradas`} up sparkline="M0 22 L20 18 L40 20 L60 14 L80 16 L100 10 L120 12 L140 8 L160 10 L180 5 L200 7"/>
+        <StatCard label="Egresos · recientes"  value={`−${fmtCOP(egresos)}`}  sub={`${txns.filter(t=>t.kind==='out').length} salidas`}  up={false} sparkline="M0 8 L20 12 L40 10 L60 16 L80 14 L100 18 L120 16 L140 22 L160 20 L180 24 L200 22"/>
+        <StatCard label="Ahorro neto"          value={fmtCOP(total)} sub="patrimonio total" up sparkline="M0 26 L20 22 L40 24 L60 16 L80 18 L100 12 L120 14 L140 8 L160 10 L180 4 L200 6"/>
+        <StatCard label="Cuentas activas"      value={String(accounts.filter(a => (a.estado || a.status) === 'ACTIVA').length)} sub={`de ${accounts.length} totales`}/>
       </div>
       <QuickActions onAction={onAction}/>
       <ActivityTable rows={txns.slice(0, 8)} onHistory={() => onAction('history')}/>
@@ -182,8 +184,8 @@ export const DesktopDetalle = ({ account, txns = [], onBack, onAction }) => {
                 <div><span className="eyebrow" style={{ fontSize: 9 }}>Estado</span><div className="mono" style={{ fontSize: 13, marginTop: 4, color: st === 'ACTIVA' ? 'var(--success)' : 'var(--danger)' }}>{st}</div></div>
               </div>
             </div>
-            <StatCard label="Entradas mes" value="+$3.4M" sub="estimado" delta="9.2%" up/>
-            <StatCard label="Salidas mes"  value="−$1.8M" sub="estimado" delta="3.1%" up={false}/>
+            <StatCard label="Entradas" value={`+${fmtCOP(txns.filter(t=>t.kind==='in').reduce((s,t)=>s+t.amount,0))}`}  sub={`${txns.filter(t=>t.kind==='in').length} entradas`}  up/>
+            <StatCard label="Salidas"  value={`−${fmtCOP(txns.filter(t=>t.kind==='out').reduce((s,t)=>s+t.amount,0))}`} sub={`${txns.filter(t=>t.kind==='out').length} salidas`} up={false}/>
           </div>
           <ActivityTable rows={txns.slice(0, 10)} dense/>
         </div>
@@ -509,70 +511,129 @@ export const DesktopProfile = ({ username = '', accounts = [], onLogout }) => {
   );
 };
 
-export const DesktopSecurity = ({ accounts = [], onToast }) => (
-  <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
-    <div className="eyebrow">Seguridad / Centro de control</div>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-      <div className="nx-card" style={{ padding: 28, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, rgba(77,141,255,0.10), rgba(77,141,255,0.02))', border: '1px solid rgba(77,141,255,0.25)' }}>
-        <svg style={{ position: 'absolute', right: -60, top: -60, opacity: 0.2 }} width="300" height="300" viewBox="0 0 300 300" fill="none">
-          {[40, 70, 100, 140, 180].map(r => <circle key={r} cx="150" cy="150" r={r} stroke="#4D8DFF" strokeWidth="0.6"/>)}
-        </svg>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(77,141,255,0.18)', color: 'var(--electric)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="shield" size={22}/>
-          </div>
-          <div>
-            <div className="eyebrow" style={{ color: 'var(--electric)' }}>Centro de seguridad</div>
-            <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>Sus cuentas están protegidas</div>
-          </div>
-        </div>
-        <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, position: 'relative' }}>
-          {[
-            ['Contraseña', 'ACTIVA', 'success'],
-            ['Sesión', 'SEGURA', 'success'],
-            ['Cifrado', 'TLS 1.3', 'success'],
-          ].map(([l, v, c]) => (
-            <div key={l} style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--stroke-1)' }}>
-              <div className="eyebrow" style={{ fontSize: 9 }}>{l}</div>
-              <div className="mono" style={{ fontSize: 11, marginTop: 6, color: `var(--${c})`, letterSpacing: '0.1em' }}>● {v}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+export const DesktopSecurity = ({ accounts = [], onToast, onToggleLock }) => {
+  const [locking, setLocking] = useState(null);
+  const [pwd, setPwd] = useState('');
+  const [busy, setBusy] = useState(false);
 
-      <div className="nx-card" style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--stroke-1)' }}>
-          <div className="eyebrow">Estado por cuenta</div>
-        </div>
-        {accounts.length === 0 && (
-          <div style={{ padding: 24, color: 'var(--text-3)', fontSize: 13, textAlign: 'center' }}>Sin cuentas disponibles</div>
-        )}
-        {accounts.map((a, i) => {
-          const st = a.estado || a.status;
-          const tagClass = st === 'ACTIVA' ? 'active' : st === 'BLOQUEADA' ? 'blocked' : 'inactive';
-          return (
-            <div key={a.idCuenta || a.id} style={{ padding: '16px 18px', display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 12, borderBottom: i < accounts.length - 1 ? '1px solid var(--stroke-1)' : 'none' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>{a.label}</div>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>{maskAcct(a.numeroCuenta || a.number)}</div>
-              </div>
-              <span className={`nx-tag nx-tag-${tagClass}`}>{st}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={() => onToast('Use la app móvil para bloquear/desbloquear cuentas', 'info')}
-                  className="press"
-                  style={{ padding: '7px 12px', borderRadius: 8, background: 'var(--bg-3)', border: '1px solid var(--stroke-1)', color: 'var(--text-2)', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Icon name={st === 'ACTIVA' ? 'lock' : 'unlock'} size={12}/> {st === 'ACTIVA' ? 'Bloquear' : 'Desbloquear'}
-                </button>
-              </div>
+  const openForm = (acct) => {
+    const id = acct.idCuenta || acct.id;
+    if (locking === id) { setLocking(null); setPwd(''); return; }
+    setLocking(id); setPwd('');
+  };
+
+  const confirm = async (acct) => {
+    if (!pwd || busy) return;
+    setBusy(true);
+    try {
+      await onToggleLock(acct, pwd);
+      setLocking(null); setPwd('');
+    } catch (e) {
+      onToast(e.message || 'Contraseña incorrecta', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="eyebrow">Seguridad / Centro de control</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div className="nx-card" style={{ padding: 28, position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, rgba(77,141,255,0.10), rgba(77,141,255,0.02))', border: '1px solid rgba(77,141,255,0.25)' }}>
+          <svg style={{ position: 'absolute', right: -60, top: -60, opacity: 0.2 }} width="300" height="300" viewBox="0 0 300 300" fill="none">
+            {[40, 70, 100, 140, 180].map(r => <circle key={r} cx="150" cy="150" r={r} stroke="#4D8DFF" strokeWidth="0.6"/>)}
+          </svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(77,141,255,0.18)', color: 'var(--electric)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="shield" size={22}/>
             </div>
-          );
-        })}
+            <div>
+              <div className="eyebrow" style={{ color: 'var(--electric)' }}>Centro de seguridad</div>
+              <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>Sus cuentas están protegidas</div>
+            </div>
+          </div>
+          <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, position: 'relative' }}>
+            {[
+              ['Contraseña', 'ACTIVA', 'success'],
+              ['Sesión', 'SEGURA', 'success'],
+              ['Cifrado', 'TLS 1.3', 'success'],
+            ].map(([l, v, c]) => (
+              <div key={l} style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--stroke-1)' }}>
+                <div className="eyebrow" style={{ fontSize: 9 }}>{l}</div>
+                <div className="mono" style={{ fontSize: 11, marginTop: 6, color: `var(--${c})`, letterSpacing: '0.1em' }}>● {v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="nx-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--stroke-1)' }}>
+            <div className="eyebrow">Estado por cuenta</div>
+          </div>
+          {accounts.length === 0 && (
+            <div style={{ padding: 24, color: 'var(--text-3)', fontSize: 13, textAlign: 'center' }}>Sin cuentas disponibles</div>
+          )}
+          {accounts.map((a, i) => {
+            const st = a.estado || a.status;
+            const tagClass = st === 'ACTIVA' ? 'active' : st === 'BLOQUEADA' ? 'blocked' : 'inactive';
+            const aid = a.idCuenta || a.id;
+            const isOpen = locking === aid;
+            const canToggle = st === 'ACTIVA' || st === 'BLOQUEADA';
+            return (
+              <div key={aid} style={{ borderBottom: i < accounts.length - 1 ? '1px solid var(--stroke-1)' : 'none' }}>
+                <div style={{ padding: '16px 18px', display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 12 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{a.label}</div>
+                    <div className="mono" style={{ fontSize: 10.5, color: 'var(--text-3)', marginTop: 2 }}>{maskAcct(a.numeroCuenta || a.number)}</div>
+                  </div>
+                  <span className={`nx-tag nx-tag-${tagClass}`}>{st}</span>
+                  {canToggle && (
+                    <button
+                      onClick={() => openForm(a)}
+                      className="press"
+                      style={{ padding: '7px 12px', borderRadius: 8, background: isOpen ? 'rgba(255,107,122,0.10)' : 'var(--bg-3)', border: `1px solid ${isOpen ? 'rgba(255,107,122,0.3)' : 'var(--stroke-1)'}`, color: isOpen ? 'var(--danger)' : 'var(--text-2)', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Icon name={st === 'ACTIVA' ? 'lock' : 'unlock'} size={12}/> {st === 'ACTIVA' ? 'Bloquear' : 'Desbloquear'}
+                    </button>
+                  )}
+                </div>
+                {isOpen && (
+                  <div style={{ padding: '0 18px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="password"
+                      className="nx-input"
+                      placeholder="Contraseña para confirmar"
+                      value={pwd}
+                      onChange={e => setPwd(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && confirm(a)}
+                      autoFocus
+                      style={{ flex: 1, height: 36, fontSize: 13 }}
+                    />
+                    <button
+                      onClick={() => confirm(a)}
+                      disabled={!pwd || busy}
+                      className="nx-btn nx-btn-primary"
+                      style={{ height: 36, padding: '0 16px', fontSize: 12, opacity: !pwd || busy ? 0.5 : 1 }}
+                    >
+                      {busy ? '…' : 'Confirmar'}
+                    </button>
+                    <button
+                      onClick={() => { setLocking(null); setPwd(''); }}
+                      className="nx-btn nx-btn-ghost"
+                      style={{ height: 36, padding: '0 12px', fontSize: 12 }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const DesktopSuccess = ({ data, onDone }) => {
   const isAch = data?.kind === 'ach';

@@ -54,7 +54,7 @@ export const TxRow = ({ t, dense = false, onClick }) => {
 };
 
 // Dashboard A — Wallet stack
-export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, genero, notifCount = 0, onBell }) => {
+export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction, username, genero, notifCount = 0, onBell, onSwitchToAdmin }) => {
   const [selIdx, setSelIdx] = useState(0);
   const total = accounts.reduce((s, a) => s + Number(a.saldo || 0), 0);
   const name = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Cliente';
@@ -67,12 +67,26 @@ export const DashboardA = ({ accounts = [], recentTxns = [], onAccount, onAction
           <div className="eyebrow">Buenos días</div>
           <div style={{ fontSize: 22, fontWeight: 500, marginTop: 4, letterSpacing: '-0.01em' }}>{tratamiento} {name}</div>
         </div>
-        <button onClick={onBell} className="press" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
-          <Icon name="bell" size={18}/>
-          {notifCount > 0 && (
-            <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, background: 'var(--electric)', border: '1.5px solid var(--bg-2)', boxShadow: '0 0 6px var(--electric-glow)' }}/>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onSwitchToAdmin && (
+            <button onClick={onSwitchToAdmin} className="press" style={{
+              height: 32, padding: '0 10px', borderRadius: 9,
+              border: '1px solid rgba(255,107,122,0.35)',
+              background: 'rgba(255,107,122,0.10)', color: 'var(--danger)',
+              fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.12em',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--danger)', boxShadow: '0 0 5px var(--danger)', display: 'inline-block' }}/>
+              ADMIN
+            </button>
           )}
-        </button>
+          <button onClick={onBell} className="press" style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-2)', border: '1px solid var(--stroke-1)', color: 'var(--text-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}>
+            <Icon name="bell" size={18}/>
+            {notifCount > 0 && (
+              <div style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, background: 'var(--electric)', border: '1.5px solid var(--bg-2)', boxShadow: '0 0 6px var(--electric-glow)' }}/>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="fade-up" style={{ padding: '20px 24px 0', animationDelay: '0.04s' }}>
