@@ -5,7 +5,7 @@ import {
   DesktopLogin, DesktopDashboard, DesktopDetalle, DesktopTransfer,
   DesktopHistory, DesktopProfile, DesktopSecurity, DesktopSuccess,
 } from './DesktopScreens';
-import { Icon, fmtCOP } from '../components/primitives';
+import { Icon, fmtCOP, maskAcct } from '../components/primitives';
 import NotificacionPanel from '../components/NotificacionPanel';
 import DesktopAdminApp from './DesktopAdminApp';
 
