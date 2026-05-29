@@ -108,18 +108,6 @@ export const getDashboard = () =>
       return cuentas.map(c => ({ ...c, nombreCliente: c.nombreCliente ?? clientName }));
     });
 
-export const depositar = (idCuenta, monto) =>
-  apiFetch('/api/v1/transacciones/depositar', {
-    method: 'POST',
-    body: JSON.stringify({ idCuenta, monto }),
-  }).then(unwrap);
-
-export const retirar = (idCuenta, monto) =>
-  apiFetch('/api/v1/transacciones/retirar', {
-    method: 'POST',
-    body: JSON.stringify({ idCuenta, monto }),
-  }).then(unwrap);
-
 export const transferir = (idCuentaOrigen, numeroCuentaDestino, monto) =>
   apiFetch('/api/v1/transacciones/transferir', {
     method: 'POST',
