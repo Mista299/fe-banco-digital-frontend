@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useViewport } from './hooks/useViewport';
 import { BottomNav, Toast } from './components/primitives';
 import ConfirmModal from './components/ConfirmModal';
 import NotificacionPanel from './components/NotificacionPanel';
@@ -39,6 +40,7 @@ const LoadingScreen = () => (
 );
 
 const App = () => {
+  const { isMobile } = useViewport();
   const [route, setRoute]           = useState('splash');
   const [navTab, setNavTab]         = useState('home');
   const [username, setUsername]     = useState('');
@@ -272,10 +274,14 @@ const App = () => {
   else if (route === 'extractos') content = <ExtractosScreen accounts={accounts} defaultAccount={selectedAcct} onBack={() => setRoute(selectedAcct ? 'detalle' : 'home')}/>;
   else if (route === 'admin-home') content = <AdminPanelScreen username={username} userRole={userRole ?? 'ADMIN'} hasClientAccounts={hasClientAccounts} onSwitchToClient={switchToClient} onLogout={handleLogout}/>;
 
-  const W = 402, H = 874;
-
   return (
-    <div style={{ width: W, height: H, borderRadius: 48, position: 'relative', overflow: 'hidden', background: '#000', boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)' }}>
+    <div style={{
+      width: isMobile ? '100vw' : 402,
+      height: isMobile ? '100svh' : 874,
+      borderRadius: isMobile ? 0 : 48,
+      position: 'relative', overflow: 'hidden', background: '#000',
+      boxShadow: isMobile ? 'none' : '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)',
+    }}>
       <div style={{ position: 'absolute', inset: 0, background: 'var(--bg-1)', overflow: 'hidden' }}>
         {content}
       </div>

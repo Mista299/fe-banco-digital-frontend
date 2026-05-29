@@ -33,6 +33,13 @@ body {
   flex-direction: unset;
 }
 
+@media (max-width: 767px) {
+  body {
+    padding: 0;
+    overflow: hidden;
+  }
+}
+
 body.desktop-mode {
   display: block;
   padding: 0;
